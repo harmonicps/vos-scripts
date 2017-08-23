@@ -1,0 +1,17 @@
+os.username=harmonic
+os.password=harmonic
+os.project=harmonic-vos
+os.auth.url=http://10.105.137.8:5000/v2.0/
+
+stack.name=GT-VOS1.3.3.0.148_60-01
+
+stack.ingest.nodes.num=10
+stack.egress.nodes.num=5
+stack.control.nodes.num=17
+
+stack.initial.ingest.nodes.num=3
+stack.initial.egress.nodes.num=3
+stack.initial.control.nodes.num=17
+
+stack.bintray.password=7b7486beabf92f2391faf0421b28668758f781ad
+stack.mediagrid.password=

@@ -1,0 +1,214 @@
+#!/bin/python
+
+import requests
+import json
+import sys
+import base64
+import getopt
+import string
+import argparse
+import urlparse
+import getpass
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
+
+VERSION = '1.1.1'
+timeout=10
+
+class HttpError(Exception):
+    def __init__(self, status_code):
+        self.status_code = status_code
+
+class CredentialsError(Exception):
+    def __init__(self, status_code, auth, url):
+        creds = auth.split("Basic ", 1)[1]
+        self.username = base64.b64decode(creds).split(':')[0]
+        self.status_code = status_code
+        self.url = url
+
+def raize_error_by_http_status_code(status_code, auth, url):
+    if status_code == 403:
+        raise CredentialsError(status_code, auth, url)
+    elif status_code != 200:
+        raise HttpError(status_code)
+
+def get_client_info(auth_header, url):
+    rest_request = '/vos-api/cloudlink/v1/clientInfo'
+    headers = {'Authorization':auth_header, 'Accept':'application/json'}
+    r = requests.get(url + rest_request, headers = headers, verify = False, timeout = timeout)
+    raize_error_by_http_status_code(r.status_code, auth_header, url)
+    return r.text
+
+def is_client_id_registered(auth_header, url, client_id):
+    rest_request = '/vos-api/client-apps/v1/apps/'+client_id
+    headers = {'Authorization':auth_header, 'Accept':'application/json'}
+    r = requests.get(url + rest_request, headers = headers, verify = False, timeout = timeout)
+    raize_error_by_http_status_code(r.status_code, auth_header, url)
+    if r.json()['client_id'] == client_id:
+        return True
+    return False
+
+def register_client(auth_header, url):
+    rest_request = '/vos-api/client-apps/v1/apps'
+    headers = {'Authorization':auth_header, 'Content-Type':'application/json', 'Accept':'*/*'}
+    data="""{ "redirect_uri":[ ]}"""
+    r = requests.post(url + rest_request, headers = headers, data = data, verify = False, timeout = timeout)
+    raize_error_by_http_status_code(r.status_code, auth_header, url)
+    return (r.json()['client_id'], r.json()['client_secret'])
+
+def register_clientInfo_callback(auth_header, url, auth_server_url, client_id, client_secret):
+    rest_request = '/vos-api/cloudlink/v1/clientInfo'
+    headers = {'Authorization':auth_header, 'Content-Type':'application/json', 'Accept':'application/json'}
+    client_info='{ "authorizationServerUrl":"'+auth_server_url+'", "clientId":"'+client_id+'", "clientSecret":"'+client_secret+'"}'
+    r = requests.post(url + rest_request, headers = headers, data = client_info, verify = False, timeout = timeout)
+    raize_error_by_http_status_code(r.status_code, auth_header, url)
+
+def auth_request(auth_header, url):
+    rest_request = '/vos-api/cloudlink/v1/authorizeClient'
+    headers = {'Authorization':auth_header}
+    r = requests.get(url + rest_request, headers = headers, allow_redirects = False, verify = False, timeout = timeout)
+    if r.status_code == 302:
+        return r.headers['Location']
+    raize_error_by_http_status_code(r.status_code, auth_header, url)
+    return ""
+
+def sanitize_url(url):
+    uri=urlparse.urlparse(url)
+    if not uri.netloc or not uri.scheme:
+        raise ValueError("Url is not valid:", url)
+    return '{uri.scheme}://{uri.netloc}'.format(uri=uri)
+
+def substitute_domain_in_link(link, domain):
+    parsed_url = urlparse.urlparse(link)
+    parsed_domain = urlparse.urlparse(domain)
+    new_url = parsed_url._replace(scheme = parsed_domain.scheme, netloc = parsed_domain.netloc)
+    str = new_url.geturl()
+    return str
+
+def access_code_request(auth_header, url):
+    headers = {'Authorization':auth_header}
+    r = requests.get(url, headers = headers, allow_redirects = False, verify = False, timeout = timeout)
+    if r.status_code == 302:
+        return r.headers['Location']
+    raize_error_by_http_status_code(r.status_code, auth_header, url)
+
+def access_code_provide(auth_header, url):
+    headers = {'Authorization':auth_header}
+    r = requests.get(url, headers = headers, verify = False, timeout = timeout)
+    raize_error_by_http_status_code(r.status_code, auth_header, url)
+
+def main(argv):
+    parser = argparse.ArgumentParser(description='***Authorizing process on CLOUD***', epilog = 'Usage example:\n'+sys.argv[0]+' --cloud_url=https://hkvpurple-01.nebula.video --cloud_username=USERNAME --cloudlink_url=http://10.47.114.47:8086', formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument('--cloud_url', dest='cloud_url', action='store', help='Cloud url', required=True)
+    parser.add_argument('--cloudlink_url', dest='cloudlink_url', action='store', help='Cloudlink url', required=True)
+    parser.add_argument('--cloud_username', dest='cloud_username', action='store', default='vos', help='Cloudlink username', required=False)
+    parser.add_argument('--cloudlink_username', dest='cloudlink_username', action='store', default='vos', help='Cloudlink username', required=False)
+    parser.add_argument('--cloudlink_password', dest='cloudlink_password', action='store', default='vossdk', help='Cloudlink password', required=False)
+    args = parser.parse_args()
+    try:
+        cloud_url = sanitize_url(args.cloud_url)
+        cloudlink_url = sanitize_url(args.cloudlink_url)
+    except ValueError as e:
+        print e
+        sys.exit(2)
+
+    cloud_password = getpass.getpass("Cloud Password:")
+    authorization_type = 'Basic '
+    cloud_auth_header = authorization_type + base64.b64encode(bytes(args.cloud_username + ':' + cloud_password))
+    cloudlink_auth_header = authorization_type + base64.b64encode(bytes(args.cloudlink_username + ':' + args.cloudlink_password))
+
+    print "Version:", VERSION
+    print "Getting client info...",
+    need_register = True
+    try:
+        r = get_client_info(cloudlink_auth_header, cloudlink_url)
+        if not r:
+            print "[Not registered]"
+        else:
+            client_id = r[1:-1]
+            print "[%s]" % client_id
+
+        if True:
+            print "Checking client app registration on cloud...",
+            try:
+                r = is_client_id_registered(cloud_auth_header, cloud_url, client_id)
+                if r:
+                    print "[Registered]"
+                    need_register = False
+                else:
+                    print "[Not registered]"
+            except HttpError as e:
+                print "[Failed: %s]" % e.status_code
+
+    except HttpError as e:
+        print "[Failed: %s]" % e.status_code
+
+    if need_register:
+        print "Registering client app...",
+        try:
+            (client_id, client_secret) = register_client(cloud_auth_header, cloud_url)
+            print "[Registered: %s]" % client_id
+        except HttpError as e:
+            print "[Failed: %s]" % e.status_code
+            sys.exit(1)
+
+        print "Registering cloudlink callback...",
+        try:
+            register_clientInfo_callback(cloudlink_auth_header, cloudlink_url, cloud_url, client_id, client_secret)
+            print "[Success]"
+        except HttpError as e:
+            print "[Failed: %s]" % e.status_code
+            sys.exit(1)
+
+    print "Trying to authorize cloudlink...",
+    try:
+        r = auth_request(cloudlink_auth_header, cloudlink_url)
+        if not r:
+            print "[Success: Already authorized]"
+            sys.exit(0)
+        else:
+            print "[Success: %s]" % r
+	    print "Substituting url in link...",
+	    link = substitute_domain_in_link(link=r, domain = cloud_url)
+	    print "[Success: %s]" % link
+    except HttpError as e:
+        print "[Failed: %s]" % e.status_code
+        sys.exit(1)
+
+    print "Requesting access code from cloud...",
+    try:
+        r = access_code_request(cloud_auth_header, link)
+        if not r:
+            print "[Failed. No link found in response]"
+            sys.exit(1)
+        else:
+            print "[Success: %s]" % r
+            print "Substituting url in link...",
+            link = substitute_domain_in_link(link=r, domain = cloudlink_url)
+            print "[Success: %s]" % link
+    except HttpError as e:
+        print "[Failed: %s]" % e.status_code
+        sys.exit(1)
+
+    print "Providing access code to cloudlink...",
+    try:
+        access_code_provide(cloudlink_auth_header, link)
+        print "[Success]"
+    except HttpError as e:
+        print "[Failed: %s]" % e.status_code
+        sys.exit(1)
+
+    print "AUTHORIZED SUCCESSFULLY [%s]" % client_id
+    sys.exit(0)
+
+try:
+    requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+    if __name__ == "__main__":
+        main(sys.argv[1:])
+except requests.ConnectionError as r:
+    print "[Failed]"
+    print r
+    sys.exit(2)
+except CredentialsError as r:
+    print "[Failed %d. Check credentials: user[%s] and password for url [%s]]" % (r.status_code, r.username, r.url)
+except SystemExit:
+    pass
