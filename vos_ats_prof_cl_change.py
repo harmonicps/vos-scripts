@@ -14,6 +14,7 @@ import time
 import sys
 import vos
 import os
+import vos
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
@@ -70,8 +71,7 @@ def main(argv):
     api_header_serv_post = {'Content-Type':'application/json' , 'Accept':'*/*'}
     
     
-    vos_session = requests.Session()
-    vos_session.auth = ('dfw.ote@gmail.com','dfwote*1')
+    vos_session = vos.vos_get_session()
     
     vos_conn_test = vos_session.post(api_proto+'://'+hostname,verify=False)
     

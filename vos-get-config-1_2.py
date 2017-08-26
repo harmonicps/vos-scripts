@@ -10,12 +10,13 @@
 from pprint import pprint
 import requests
 import json
+import vos
 
 requests.packages.urllib3.disable_warnings()
 
 api_proto = "https"
 
-hostname = "vosdashboard.dfwcpcgreen.ds.dtvops.net"
+hostname = raw_input("Enter the VOS RT Address:\n")
 
 api_get_serv = "/vos-api/configure/v1/services"
 
@@ -32,8 +33,7 @@ api_header_json = {'user-agent':'Accept:application/json'}
 api_header_all = {'user-agent':'Accept: */*'}
 
 
-vos_session = requests.Session()
-vos_session.auth = ('dfw.ote@gmail.com','dfwote*1')
+vos_session = vos.vos_get_session()
 
 vos_session.post(api_proto+'://'+hostname, verify=False)
 

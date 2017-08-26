@@ -17,11 +17,11 @@ from requests.packages.urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 
-vos_session = vos.vos_get_session("dfw.ote@gmail.com","dfwote*1")
+vos_session = vos.vos_get_session()
 
 cl_session = vos.vos_get_session("vos","vossdk")
 
-vosrt = "vosdashboard.dfwcpcgreen.ds.dtvops.net"
+vosrt = raw_input("Enter the VOS RT Url:\n")
 
 
 

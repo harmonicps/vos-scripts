@@ -44,7 +44,7 @@ requests.packages.urllib3.disable_warnings()
 
 api_proto = "https"
 
-hostname = "vosdashboard.dfwcpcgreen.ds.dtvops.net"
+hostname = raw_input("Enter the VOS RT Address:\n")
 
 api_get_dest = "/vos-api/configure/v1/destinations"
 
@@ -55,8 +55,7 @@ api_header_all = {'user-agent':'Accept: */*'}
 api_header_serv_post = {'Content-Type':'application/json' , 'Accept':'*/*'}
 
 
-vos_session = requests.Session()
-vos_session.auth = ('dfw.ote@gmail.com','dfwote*1')
+vos_session = vos.vos_get_session()
 
 vos_conn_test = vos_session.post(api_proto+'://'+hostname,verify=False)
 

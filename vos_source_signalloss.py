@@ -22,7 +22,7 @@ import time
 from pprint import pprint
 import requests
 
-vos_session = vos.vos_get_session("dfw.ote@gmail.com","dfwote*1")
+vos_session = vos.vos_get_session()
 vosrt = "10.105.163.3"
 slate_img = "c2c58142-ffca-19c1-2b7f-79ac484fd360"
 f = open('sources.txt', 'r')

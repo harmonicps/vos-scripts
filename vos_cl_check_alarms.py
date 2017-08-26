@@ -18,14 +18,14 @@ import getpass
 import time
 
 
-def get_notifications(cl_ip,vos_session,vos_clsession,nt_state,result_count):
+def get_notifications(cl_ip,vos_session,cl_session,nt_state,result_count):
 
             cl_notif = vos.vos_get_notifications(nt_state,result_count,cl_ip,vos_session)
             
             
             if cl_notif.status_code == 403:
                 print "CL %s Login Failed. Trying with Legacy Password." %cl_ip
-                cl_notif = vos.vos_get_notifications(nt_state,result_count,cl_ip,vos_clsession)
+                cl_notif = vos.vos_get_notifications(nt_state,result_count,cl_ip,cl_session)
 
             if cl_notif.status_code == 200:
                 for notif in cl_notif.json():
@@ -51,21 +51,19 @@ def main(argv):
 
 
     args = parser.parse_args()
-    '''
+   
     if not args.cloud_username:
         user = raw_input("Enter the Username for VOS:\n")
     else:
         user = args.cloud_username
-    '''
+   
     vosrt = args.cloud_url
 
-    #passwd = getpass.getpass("Enter the Password:\n")
+    passwd = getpass.getpass("Enter the Password:\n")
 
-    user = "dfw.ote@gmail.com"
-    passwd = "dfwote*1"
     vos_session = vos.vos_get_session(user,passwd)
     
-    vos_clsession = vos.vos_get_session("vos","vossdk")
+    cl_session = vos.vos_get_session("vos","vossdk")
 
 
     nt_state = ""
@@ -82,7 +80,7 @@ def main(argv):
 
         for cl in cl_list:
 
-            get_notifications(cl['clip'],vos_session,vos_clsession,nt_state,args.result_count)
+            get_notifications(cl['clip'],vos_session,cl_session,nt_state,args.result_count)
 
     else:
         cl_notif = vos.vos_get_notifications(nt_state,vosrt,vos_session)

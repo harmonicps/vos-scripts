@@ -11,6 +11,7 @@ import requests
 import json,yaml
 import time
 import sys
+import vos
 
 
 
@@ -46,8 +47,7 @@ api_proto = "https"
 
 vosrt = raw_input("Enter the RT Address: ")
 
-vos_session = requests.Session()
-vos_session.auth = ('dfw.ote@gmail.com','dfwote*1')
+vos_session = vos.vos_get_session()
 
 
 lio_list = vos_get_live_ingest(vosrt,vos_session).json()
