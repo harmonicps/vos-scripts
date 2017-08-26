@@ -51,10 +51,7 @@ def main(argv):
     else:
         user = args.cloud_username
 
-    #passwd = getpass.getpass("Enter the Password:\n")
-
-    passwd = "dfwote*1"
-
+    passwd = getpass.getpass("Enter the Password:\n")
 
     vos_session = vos.vos_get_session(user,passwd)
 

@@ -11,9 +11,9 @@
 # John Vasconcelos @ john.vasconcelos@harmonicinc.com
 #
 # Author: John Vasconcelos
-# Date: 05/14/2017
-# Version 1.1.1.3.2
-# Tested with VOS Build 1.3.2
+# Date: 08/25/2017
+# Version 1.3
+# Tested with VOS Build 1.3.3.X
 ###########################################################
 '''
 
@@ -118,6 +118,34 @@ def vos_get_provision(vosrt,session="",proto="https"):
     check_request(req.status_code,uri)
 
     return req.json()
+
+
+def vos_get_notifications(state,result_count,vosrt,session="",proto="https"):
+
+    if not session:
+        session = vos_get_session()
+
+    if not state:
+        api_url = "/vos-api/notification/v1/notifications?result_count=" + str(result_count)
+    else:
+        api_url = "/vos-api/notification/v1/notifications?state=%s&result_count=%s" %(state,result_count)
+
+    api_header = {'user-agent':'Accept: */*'}
+
+    uri = proto+'://'+vosrt+api_url
+
+    req = session.get(uri,headers=api_header,verify=False)
+    
+    #Checks if the Request was successful
+
+    if not (req.status_code == 200 or req.status_code == 403): 
+        print "Error on Request: " + uri 
+        print "Exited with HTTP CODE: " + str(req.status_code)
+
+    if req.status_code == 403:
+        print "Authentication failed for: " + uri
+
+    return req
 
 
 def vos_get_source_all(vosrt,session="",proto="https"):
