@@ -197,7 +197,7 @@ def vos_get_service_id(servid,vosrt,session="",proto="https"):
     req = session.get(uri,headers=api_header,verify=False)
     
     #Checks if the Request was successful
-    check_request(req.status_code,uri)
+    #check_request(req.status_code,uri)
 
     return req
 
@@ -559,15 +559,19 @@ def vos_get_live_ingest(tasks,agents,vosrt,session="",proto="https"):
 
         serv = vos_get_service_id(lio_servid,vosrt,session,proto).json()
         
-        lio_servname = serv['name']
+        if serv.status_code == 200:
 
-        for endpoint in lio['endPoints']:
-            lio_state = endpoint['state']
-            for task in tasks:
-                if task['name'] == "live-ingest-origin-task-" + endpoint['hostUuid']:
-                    lio_nodeip = task['statuses'][0]['container_status']['network_infos'][0]['ip_addresses'][0]['ip_address']
-                    lio_node = mesos_get_agent_name(agents,task['agent_id']['value'])
-            lio_info.append({'servname':lio_servname , 'servid':lio_servid , 'lioid':lio_id ,'package':lio_pkge , 'node':lio_node , 'nodeip':lio_nodeip , 'state':lio_state})     
+            lio_servname = serv['name']
+    
+            for endpoint in lio['endPoints']:
+                lio_state = endpoint['state']
+                for task in tasks:
+                    if task['name'] == "live-ingest-origin-task-" + endpoint['hostUuid']:
+                        lio_nodeip = task['statuses'][0]['container_status']['network_infos'][0]['ip_addresses'][0]['ip_address']
+                        lio_node = mesos_get_agent_name(agents,task['agent_id']['value'])
+                lio_info.append({'servname':lio_servname , 'servid':lio_servid , 'lioid':lio_id ,'package':lio_pkge , 'node':lio_node , 'nodeip':lio_nodeip , 'state':lio_state})     
+        else:
+            print serv.text
 
     return lio_info
 
