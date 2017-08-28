@@ -12,6 +12,7 @@
 # vos.py needs to be in the same path as this script.
 import vos
 import requests
+import sys
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
@@ -40,9 +41,19 @@ for cl in cl_list:
 
         uri = 'https://'+cl['clip']+"/vos-api/upgrade/v1/runtime/upgrade"
 
+        uriinfo = 'https://'+cl['clip']+"/vos-api/system/v1/info"
+
         ret = cl_session.get(uri,headers=api_header,verify=False)
 
-        print "CL: %s - IP: %s Upgrade State: %s" %(cl['clname'],cl['clip'],ret.json()['upgradeState'])
+        if ret.status_code == 403:
+            ret = vos_session.get(uri,headers=api_header,verify=False)
+
+        retinfo = cl_session.get(uriinfo,headers=api_header,verify=False)
+
+        if retinfo.status_code == 403:
+            retinfo = vos_session.get(uriinfo,headers=api_header,verify=False)
+
+        print "CL: %s - IP: %s Upgrade State: %s - Current Version: %s" %(cl['clname'],cl['clip'],ret.json()['upgradeState'],retinfo.json()['bundleVersion'])
 
     else:
 
