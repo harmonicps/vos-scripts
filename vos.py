@@ -38,12 +38,52 @@ def check_request(code,uri=""):
         print "Exited with HTTP CODE: " + str(code)
         sys.exit(2)
 
-  
+def api_request(req_method,uri,header,session=""):
+    """
+    This function is used to perform API requests and return the full requests object
+
+    args(method,uri,header)
+        method - can be get,post,put,delete
+        uri - the API url to be used
+        header - The header to be used
+        session - session to be used for the request. Default is " which will request"
+
+    return req - Function returns the full response of the Request object
+    """
+    req =""
+
+    if req_method == "get":
+        try:
+            req = session.get(uri,headers=header,verify=False)
+        except requests.exceptions.RequestException as e:  # This is the correct syntax
+            print e
+    elif req_method == "post":
+        try:
+            req = session.post(uri,headers=header,verify=False)
+        except requests.exceptions.RequestException as e:  # This is the correct syntax
+            print e
+    elif req_method == "put":
+        try:
+            req = session.put(uri,headers=header,verify=False)
+        except requests.exceptions.RequestException as e:  # This is the correct syntax
+            print e
+    elif req_method == "delete":
+        try:
+            req = session.delete(uri,headers=header,verify=False)
+        except requests.exceptions.RequestException as e:  # This is the correct syntax
+            print e
+    else:
+        print "Method %s is not a valid method please use: get,post,put,or delete!" %method
+
+    return req            
+
 
 def vos_get_session(user="",passwd=""):
     
-    if not user or not passwd:
+    if not user:
         user = raw_input("Enter the Username for VOS:\n")
+    
+    if not passwd:    
         passwd = getpass.getpass("Enter the Password:\n")
 
     vos_session = requests.Session()
@@ -134,16 +174,16 @@ def vos_get_notifications(state,result_count,vosrt,session="",proto="https"):
 
     uri = proto+'://'+vosrt+api_url
 
-    req = session.get(uri,headers=api_header,verify=False)
+    req = api_request("get",uri,api_header,session)
     
     #Checks if the Request was successful
-
-    if not (req.status_code == 200 or req.status_code == 403): 
-        print "Error on Request: " + uri 
-        print "Exited with HTTP CODE: " + str(req.status_code)
-
-    if req.status_code == 403:
-        print "Authentication failed for: " + uri
+    if req:
+        if not (req.status_code == 200 or req.status_code == 403): 
+            print "Error on Request: " + uri 
+            print "Exited with HTTP CODE: " + str(req.status_code)
+    
+        if req.status_code == 403:
+            print "Authentication failed for: " + uri
 
     return req
 
@@ -407,11 +447,11 @@ def vos_get_cl_list(vosrt,session="",proto="https"):
 
     uri_stat = proto+'://'+vosrt+api_get_stat
 
-    req_cl = session.get(uri_cl,headers=api_header,verify=False)
+    req_cl = api_request("get",uri_cl,api_header,session)
 
-    req_clgrp = session.get(uri_clgrp,headers=api_header,verify=False)
+    req_clgrp = api_request("get",uri_clgrp,api_header,session)
 
-    req_stat = session.get(uri_stat,headers=api_header,verify=False)
+    req_stat = api_request("get",uri_stat,api_header,session)
 
     cl_list = []
     
@@ -432,7 +472,8 @@ def vos_get_cl_list(vosrt,session="",proto="https"):
         for stat in req_stat.json():
             if clid == stat['id']:
                 clstate = stat['uplinkState']
-                clrate = stat['uplinkStatistic']['uplinkOutputStatisticList']
+                if not clstate == "LOST":
+                    clrate = stat['uplinkStatistic']['uplinkOutputStatisticList']
 
         for clgrp in req_clgrp.json():
             if clid == clgrp['uplinkIds'][0]:

@@ -22,22 +22,22 @@ def get_notifications(cl_ip,vos_session,cl_session,nt_state,result_count):
 
             cl_notif = vos.vos_get_notifications(nt_state,result_count,cl_ip,vos_session)
             
-            
-            if cl_notif.status_code == 403:
-                print "CL %s Login Failed. Trying with Legacy Password." %cl_ip
-                cl_notif = vos.vos_get_notifications(nt_state,result_count,cl_ip,cl_session)
-
-            if cl_notif.status_code == 200:
-                for notif in cl_notif.json():
-
-                    time_assert = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(notif['creationTime'] / 1000))
-
-                    time_resolv = ""
-
-                    if notif['resolvedTime']:
-                        time_resolv = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(notif['resolvedTime'] / 1000))
-                    
-                    print '%-18s %-12s %-10s %-22s %-22s %-40s %-40s %s' %(cl_ip , notif['severity'] , notif['state'] , time_assert , time_resolv , notif['title'] , notif['channelName'] , notif['objectName'])
+            if cl_notif:
+                if cl_notif.status_code == 403:
+                    print "CL %s Login Failed. Trying with Legacy Password." %cl_ip
+                    cl_notif = vos.vos_get_notifications(nt_state,result_count,cl_ip,cl_session)
+    
+                if cl_notif.status_code == 200:
+                    for notif in cl_notif.json():
+    
+                        time_assert = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(notif['creationTime'] / 1000))
+    
+                        time_resolv = ""
+    
+                        if notif['resolvedTime']:
+                            time_resolv = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(notif['resolvedTime'] / 1000))
+                        
+                        print '%-18s %-12s %-10s %-22s %-22s %-40s %-40s %s' %(cl_ip , notif['severity'] , notif['state'] , time_assert , time_resolv , notif['title'] , notif['channelName'] , notif['objectName'])
 
 
 def main(argv):
@@ -83,7 +83,8 @@ def main(argv):
             get_notifications(cl['clip'],vos_session,cl_session,nt_state,args.result_count)
 
     else:
-        cl_notif = vos.vos_get_notifications(nt_state,vosrt,vos_session)
+        
+        get_notifications(args.cl_ip,vos_session,cl_session,nt_state,args.result_count)
 
 
 if __name__ == "__main__":
