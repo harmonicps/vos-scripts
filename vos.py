@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-'''
+"""
 ###########################################################
 # Script: vos.py
 # NOTE: THIS SCRIPT IS NOT SUPPORTED OR TESTED BY HARMONIC. 
@@ -15,7 +15,7 @@
 # Version 1.3
 # Tested with VOS Build 1.3.3.X
 ###########################################################
-'''
+"""
 
 import requests
 import json
@@ -38,17 +38,18 @@ def check_request(code,uri=""):
         print "Exited with HTTP CODE: " + str(code)
         sys.exit(2)
 
-def api_request(req_method,uri,header,session=""):
-    """
-    This function is used to perform API requests and return the full requests object
+def api_request(req_method,uri,header,session="",param=""):
+    """This function is used to perform API requests and return the full requests object
 
-    args(method,uri,header)
+    Args:
         method - can be get,post,put,delete
         uri - the API url to be used
         header - The header to be used
         session - session to be used for the request. Default is " which will request"
+        param - Parameters for post and put methods.
 
-    return req - Function returns the full response of the Request object
+    Returns:
+        req - Function returns the full response of the Request object
     """
     req =""
 
@@ -59,12 +60,12 @@ def api_request(req_method,uri,header,session=""):
             print e
     elif req_method == "post":
         try:
-            req = session.post(uri,headers=header,verify=False)
+            req = session.post(uri,headers=header,data=param,verify=False)
         except requests.exceptions.RequestException as e:  # This is the correct syntax
             print e
     elif req_method == "put":
         try:
-            req = session.put(uri,headers=header,verify=False)
+            req = session.put(uri,headers=header,data=param,verify=False)
         except requests.exceptions.RequestException as e:  # This is the correct syntax
             print e
     elif req_method == "delete":
@@ -353,7 +354,7 @@ def vos_add_source(param,vosrt,session="",proto="https"):
 
     if ret.status_code == 200:
 
-        print "Service %s with ID %s created with the following Params:\n" %(new_source['name'] , new_source['id'])
+        print "Source %s with ID %s created with the following Params:\n" %(new_source['name'] , new_source['id'])
         print param
         print "\n"
 
@@ -640,3 +641,54 @@ def get_fip_ip(session,clip,proto="https"):
 
     return fip_list
 
+def vos_get_dest_all(vosrt,session="",proto="https"):
+
+    if not session:
+        session = vos_get_session()
+
+    api_url = "/vos-api/configure/v1/destinations"
+    api_header = {'user-agent':'Accept:application/json'}
+
+    uri = proto+'://'+vosrt+api_url
+
+    req = api_request("get",uri,api_header,session)
+    
+    #Checks if the Request was successful
+    check_request(req.status_code,uri)
+
+    return req
+
+def vos_get_dest_id(did,vosrt,session="",proto="https"):
+
+    if not session:
+        session = vos_get_session()
+
+    api_url = "/vos-api/configure/v1/destinations/" + did
+    api_header = {'user-agent':'Accept:application/json'}
+
+    uri = proto+'://'+vosrt+api_url
+
+    req = api_request("get",uri,api_header,session)
+    
+    #Checks if the Request was successful
+    check_request(req.status_code,uri)
+
+    return req
+
+
+def vos_mod_dest(did,param,vosrt,session="",proto="https"):
+
+    if not session:
+        session = vos_get_session()
+
+    api_url = "/vos-api/configure/v1/destinations/" + did
+    api_header = {'Content-Type':'application/json' , 'Accept':'application/json'}
+
+    uri = proto+'://'+vosrt+api_url
+
+    req = api_request("put",uri,api_header,session,param)
+    
+    #Checks if the Request was successful
+    check_request(req.status_code,uri)
+
+    return req

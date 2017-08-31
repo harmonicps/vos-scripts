@@ -1,92 +1,98 @@
 #!/usr/bin/env python
 
+"""
 ###########################################################
 # Script: vos_dest_prof_change.py
 # Author: John Vasconcelos
-# Date: 06/01/2017
-# Version 1.1
+# Date: 08/31/2017
+# Version 2.1
 ###########################################################
+"""
 
+# vos.py needs to be in the same path as this script.
+import vos
 import requests
+import argparse
 import json,yaml
 import time
 import sys
-import vos
+import os
+import getpass
 
 
-def change_prof(did,newprof):
+def change_prof(vosrt,did,newprof,session):
 
-    api_header_put = {'Content-Type':'application/json' , 'Accept':'application/json'}
-
-    api_dest = "/vos-api/configure/v1/destinations/" + did 
-
-    dest_req = vos_session.get(api_proto+'://'+hostname+api_dest,headers=api_header_json,verify=False)
+    dest_req = vos.vos_get_dest_id(did,vosrt,session)
 
     dest_mod = yaml.safe_load(dest_req.text)
 
-    print "Changing Dest %s with Profile %s with new Profile %s" %(dest_mod['name'], dest_mod['destinationProfileId'] , newprof)
+    print "Changing Dest %s - Profile %s with new Profile %s" %(dest_mod['name'], dest_mod['destinationProfileId'] , newprof)
 
     dest_mod['destinationProfileId'] = newprof
     print dest_mod['destinationProfileId']
     
     param = json.dumps(dest_mod)
  
-    ret = vos_session.put(api_proto+'://'+hostname+api_dest,headers=api_header_put,data=param,verify=False)
+    ret = vos.vos_mod_dest(did,param,vosrt,session)
     
     print ret
 
-    time.sleep(120)
+    time.sleep(30) # Wait n number of seconds in between API Calls.
 
 
 
-
-requests.packages.urllib3.disable_warnings()
-
-api_proto = "https"
-
-hostname = raw_input("Enter the RT Address: ")
-
-api_get_dest = "/vos-api/configure/v1/destinations"
-
-api_header_json = {'user-agent':'Accept:application/json'}
-
-api_header_all = {'user-agent':'Accept: */*'}
-
-api_header_serv_post = {'Content-Type':'application/json' , 'Accept':'*/*'}
+def main(argv):
+    parser = argparse.ArgumentParser(description='***VOS Check Notifications***', epilog = 'Usage example:\n'+sys.argv[0]+' --cloud_url <RT URL> --batch_file=dest.txt --new_prof_id=f024bea3-cc44-8e19-dbcc-fc3a20dfdcde', formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument('--cloud_url', dest='cloud_url', action='store', help='Cloud url', required=True)
+    parser.add_argument('--cloud_username', dest='cloud_username', action='store', default='', help='Cloudlink username', required=False)
+    parser.add_argument('--batch_file', dest='batch_file', action='store', help='Batch File with Destination Names to be Processed', required=True)
+    parser.add_argument('--new_prof_id', dest='new_prof_id', action='store', default='', help='Destination Profile ID to be changed to.', required=True)
 
 
-vos_session = vos.vos_get_session()
+    args = parser.parse_args()
 
-vos_conn_test = vos_session.post(api_proto+'://'+hostname,verify=False)
+    if not os.path.isfile(args.batch_file):
+        print "File %s does not exist !!" %args.batch_file
+        sys.exit(2)
 
-if vos_conn_test.status_code != 200:
-    print "Error Connecting to VOS: "
-    print vos_conn_test
-    sys.exit(2)
+    dest_file = open(args.batch_file)
 
-vos_dest_req = vos_session.get(api_proto+'://'+hostname+api_get_dest,headers=api_header_json,verify=False)
+    if not args.cloud_username:
+        user = raw_input("Enter the Username for VOS:\n")
+    else:
+        user = args.cloud_username
+   
+    vosrt = args.cloud_url
 
+    passwd = getpass.getpass("Enter the Password:\n")
 
-d = vos_dest_req.json()
+    vos_session = vos.vos_get_session(user,passwd)
 
-mobile_prof = "35a91a1e-d99e-49d7-0368-257b6f16ac95"
+    vosrt = args.cloud_url       
 
-tv_prof = "f5bdfc57-a20a-9358-36e7-857a3b09cd7d"
+    vos_dest_req = vos.vos_get_dest_all(vosrt,vos_session).json()
 
-for ditem in d:
+    for ditem in vos_dest_req:
+    
+        d_id = ditem['id']
+    
+        d_name = ditem['name']
+        
+        for dest in dest_file:
 
-    d_id = ditem['id']
+            dest_name = dest.strip()
 
-    d_name = ditem['name']
+            if dest_name == d_name:
 
-    d_prof = ditem['destinationProfileId']
+                d_prof = ditem['destinationProfileId']
+    
+                if d_prof != args.new_prof_id: 
+    
+                    change_prof(vosrt,d_id,args.new_prof_id,vos_session)
 
-    if "mobile.origin" in d_name and d_prof != mobile_prof: 
+        dest_file.seek(0) # goes back to the begining of the file.
+    
 
-        change_prof(d_id,mobile_prof)
-
-    if "tv.origin" in d_name and d_prof != tv_prof:
-
-        change_prof(d_id,tv_prof)
-
+if __name__ == "__main__":
+    main(sys.argv[1:])
     
