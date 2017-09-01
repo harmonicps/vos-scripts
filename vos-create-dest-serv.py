@@ -13,6 +13,7 @@ import time
 import uuid
 import sys
 import os
+import vos
 
 
 if not len(sys.argv) ==  2:
@@ -29,7 +30,7 @@ requests.packages.urllib3.disable_warnings()
 
 api_proto = "https"
 
-hostname = "vosdashboard.dfwcpcgreen.ds.dtvops.net"
+hostname = raw_input("Enter the VOS RT Address:\n")
 
 api_header_serv_post = {'Content-Type':'application/json' , 'Accept':'*/*'}
 
@@ -39,9 +40,7 @@ api_dest_url = "/vos-api/configure/v1/destinations"
 
 api_serv_url = "/vos-api/configure/v1/services"
 
-vos_session = requests.Session()
-vos_session.auth = ('dfw.ote@gmail.com','dfwote*1')
-
+vos_session = vos.vos_get_session()
 
 def get_dest_param(dname,dpubname,dprofid):
 

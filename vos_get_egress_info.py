@@ -13,11 +13,11 @@
 # vos.py needs to be in the same path as this script.
 import vos
 
-vos_session = vos.vos_get_session("dfw.ote@gmail.com","dfwote*1")
+vosrt = raw_input("Enter the VOS RT Address:\n")
 
-mesos_master = "10.105.168.19"
+vos_session = vos.vos_get_session()
 
-vosrt = "vosdashboard.dfwcpcgreen.ds.dtvops.net"
+mesos_master = raw_input("Enter the IP of the Mesos Master:\n")
 
 mtasks = vos.mesos_get_tasks(mesos_master)
 

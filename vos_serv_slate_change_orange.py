@@ -22,8 +22,9 @@ import time
 import requests
 
 # Function to get vos session
-vos_session = vos.vos_get_session("dfw.ote@gmail.com","dfwote*1")
-vosrt = "10.105.163.3"
+vosrt = raw_input("Enter the VOS RT Address:\n")
+
+vos_session = vos.vos_get_session()
 slate_img = "a9717984-624e-3366-293f-8c6294dbfa82"
 f = open('services.txt', 'r')
 content = f.readlines()

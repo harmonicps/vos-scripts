@@ -26,7 +26,7 @@ def main(argv):
 
     args = parser.parse_args()
 
-    vos_session = vos.vos_get_session("dfw.ote@gmail.com","dfwote*1")
+    vos_session = vos.vos_get_session()
 
     vosrt = args.cloud_url
   

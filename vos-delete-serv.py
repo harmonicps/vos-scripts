@@ -11,6 +11,7 @@ from pprint import pprint
 import requests
 import json
 import sys
+import vos
 
 
 if not len(sys.argv) ==  2:
@@ -22,7 +23,9 @@ requests.packages.urllib3.disable_warnings()
 
 api_proto = "https"
 
-hostname = "vosdashboard.dfwcpcgreen.ds.dtvops.net"
+hostname = raw_input("Enter the VOS RT Address:\n")
+
+vos_session = vos.vos_get_session()
 
 service_id = sys.argv[1]
 
@@ -31,10 +34,6 @@ api_del_serv = "/vos-api/configure/v1/services/" + service_id
 api_header_json = {'user-agent':'Accept:application/json'}
 
 api_header_all = {'user-agent':'Accept: */*'}
-
-
-vos_session = requests.Session()
-vos_session.auth = ('dfw.ote@gmail.com','dfwote*1')
 
 vos_session.post(api_proto+'://'+hostname, verify=False)
 

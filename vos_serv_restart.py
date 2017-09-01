@@ -32,10 +32,10 @@ def main(argv):
     if not os.path.isfile(args.batch_file):
         print "File %s does not exist !!" %args.batch_file
         sys.exit(2)
-
-    vos_session = vos.vos_get_session("dfw.ote@gmail.com","dfwote*1")
-
-    vosrt = "10.25.110.25"
+    
+    vosrt = raw_input("Enter the VOS RT Address:\n")
+    
+    vos_session = vos.vos_get_session()
 
     proto = "https"
 

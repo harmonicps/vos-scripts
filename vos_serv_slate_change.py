@@ -29,8 +29,6 @@ def main(argv):
 
     args = parser.parse_args()
 
-    #vos_session = vos.vos_get_session("dfw.ote@gmail.com","dfwote*1")
-
     vosrt = args.cloud_url
 
     if not args.cloud_username:
@@ -38,9 +36,7 @@ def main(argv):
     else:
         user = args.cloud_username
 
-    #passwd = getpass.getpass("Enter the Password:\n")
-
-    passwd = "dfwote*1"
+    passwd = getpass.getpass("Enter the Password:\n")
 
     slate_img = args.image_id
 

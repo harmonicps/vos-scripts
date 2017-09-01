@@ -13,9 +13,9 @@
 # vos.py needs to be in the same path as this script.
 import vos
 
-vos_session = vos.vos_get_session("dfw.ote@gmail.com","dfwote*1")
+vos_session = vos.vos_get_session()
 
-vosrt = "vosdashboard.dfwcpcgreen.ds.dtvops.net"
+vosrt = raw_input("Enter the VOS RT Address:\n")
 
 cl_list = vos.vos_get_cl_list(vosrt,vos_session)
 

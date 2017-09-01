@@ -10,9 +10,9 @@ import json
 import requests
 import vos
 
-vos_session = vos.vos_get_session("dfw.ote@gmail.com","dfwote*1")
+hostname = raw_input("Enter the VOS RT Address:\n")
+vos_session = vos.vos_get_session()
 api_proto = "https"
-hostname = "10.105.163.3"
 api_get_drm = "/vos-api/scrambling/v1/drm/systems"
 api_get_services = "/vos-api/configure/v1/services"
 api_header_json = {'user-agent':'Accept:application/json'}

@@ -32,9 +32,9 @@ def main(argv):
         print "File %s does not exist !!" %args.batch_file
         sys.exit(2)
 
-    vos_session = vos.vos_get_session("dfw.ote@gmail.com","dfwote*1")
+    vosrt = raw_input("Enter the VOS RT Address:\n")
 
-    vosrt = "vosdashboard.dfwcpcgreen.ds.dtvops.net"
+    vos_session = vos.vos_get_session()
 
     f = open(args.batch_file)
 
