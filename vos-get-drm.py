@@ -18,8 +18,6 @@ api_get_services = "/vos-api/configure/v1/services"
 api_header_json = {'user-agent':'Accept:application/json'}
 api_header_all = {'user-agent':'Accept: */*'}
 api_header_serv_post = {'Content-Type':'application/json' , 'Accept':'*/*'}
-#vos_session = requests.Session()
-#vos_session.auth = ('dfw.ote@gmail.com','dfwote*1')
 vos_drm_req = vos_session.get(api_proto+'://'+hostname+api_get_drm,headers=api_header_json,verify=False)
 vos_service_req = vos_session.get(api_proto+'://'+hostname+api_get_services,headers=api_header_json,verify=False)
 data = vos_drm_req.json()
