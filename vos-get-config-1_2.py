@@ -63,7 +63,7 @@ cl = vos_cl_req.json()
 
 
 print "*".join(("Service Name"  ,  "Service ID" , "State"  , "SRV Profile" , "SRV Prof Ver"  ,  "SRV Prof ID" , "Source Name" , "Source ID" ,  "SRC CL" , "SRC CL ID" , "SRC IP" ,\
-                "SRC Mcast"   ,"SRC Port"  ,  "Destination Name"  ,  "Dest ID" , "Dst Type"  ,  "ATS Mcast" ,  "ATS Port"  ,  "ATS CL" , "ATC CL ID" ,  "Dest Profile"  ,  "Dest Prof Ver",\
+                "SRC Mcast"   ,"SRC Port"  ,  "Destination Name" ,  "Dest ID" , "Dst Type" , "Publish Name",  "ATS Mcast" ,  "ATS Port"  ,  "ATS CL" , "ATC CL ID" ,  "Dest Profile"  ,  "Dest Prof Ver",\
                 "Dest Prof ID"))
 
 
@@ -93,6 +93,7 @@ for svitem in sv:
                     d_ip = ditem['outputs'][0]['ipSettings']['ipAddress']
                     d_udp = str(ditem['outputs'][0]['ipSettings']['ipPort'])
                     d_clid = ditem['outputs'][0]['ipSettings']['cloudlinkGroupId']
+                    d_pub = 'NA'
                     for citem in cl:
                         c_id = citem['id']
                         if c_id == d_clid:
@@ -103,6 +104,9 @@ for svitem in sv:
                     d_udp = 'NA'
                     d_cl = 'NA'
                     d_eclid = 'NA'
+                    for d_endpoint in ditem['outputs'][0]['originSettings']['originOutputEndPoints']:
+                        if d_endpoint['publishName']:
+                            d_pub = d_endpoint['publishName']
                 for pitem in p:
                     p_id = pitem['id']
                     if p_id == d_prof_id:
@@ -127,4 +131,4 @@ for svitem in sv:
                         sr_cl = "NA"
 
         #print '*'.join((sv_name,sv_state,sr_name,sr_cl,sr_sip,sr_mip,sr_udp,d_name,d_type,d_ip,d_udp,d_cl,p_name,p_ver))
-        print '*'.join((sv_name,sv_id,sv_state,sr_p_name,sr_p_ver,sv_prof_id,sr_name,sv_sour_id,sr_cl,sr_clid,sr_sip,sr_mip,sr_udp,d_name,sv_dest_id,d_type,d_ip,d_udp,d_cl,d_eclid,d_p_name,d_p_ver,d_prof_id))
+        print '*'.join((sv_name,sv_id,sv_state,sr_p_name,sr_p_ver,sv_prof_id,sr_name,sv_sour_id,sr_cl,sr_clid,sr_sip,sr_mip,sr_udp,d_name,sv_dest_id,d_type,d_pub,d_ip,d_udp,d_cl,d_eclid,d_p_name,d_p_ver,d_prof_id))
