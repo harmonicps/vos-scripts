@@ -23,8 +23,8 @@ import uuid
 import time
 import requests
 
-vos_session = vos.vos_get_session("dfw.ote@gmail.com","dfwote*1")
-vosrt = "10.105.163.3"
+vosrt = raw_input("Enter the VOS RT Address:\n")
+vos_session = vos.vos_get_session()
 # input json which holds all the sources information in json format.
 sources = json.load(open('sources.json'))
 # input json which holds all the destinations information in json format.

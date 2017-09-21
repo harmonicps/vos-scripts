@@ -24,14 +24,13 @@ count = 0
 sourceId2 = ""
 destinationIdsATS = ""
 api_proto = "https"
-hostname = "10.105.163.3"
+hostname = raw_input("Enter the VOS RT Address:\n")
+vos_session = vos.vos_get_session()
 api_get_source = "/vos-api/configure/v1/sources"
 api_get_destination = "/vos-api/configure/v1/destinations"
 api_get_transcodingProfileId = "/vos-api/labwizard/v1/profiles"
 api_header_json = {'user-agent':'Accept:application/json'}
 api_header_serv_post = {'Content-Type':'application/json' , 'Accept':'*/*'}
-vos_session = requests.Session()
-vos_session.auth = ('dfw.ote@gmail.com','dfwote*1')
 vos_source_get_req = vos_session.get(api_proto+'://'+hostname+api_get_source,headers=api_header_json,verify=False)
 vos_destination_get_req = vos_session.get(api_proto+'://'+hostname+api_get_destination,headers=api_header_json,verify=False)
 vos_profileId_get_req = vos_session.get(api_proto+'://'+hostname+api_get_transcodingProfileId,headers=api_header_serv_post,verify=False)

@@ -52,13 +52,12 @@ for line in reader:
 }
         info_as_json = json.dumps(data)
         api_proto = "https"
-        hostname = "10.105.163.3"
+        hostname = raw_input("Enter the VOS RT Address:\n")
+        vos_session = vos.vos_get_session()
         api_post_dest = "/vos-api/configure/v1/destinations"
 	api_get_destinations = "/vos-api/configure/v1/destinations"
         api_header_json = {'user-agent':'Accept:application/json'}
         api_header_serv_post = {'Content-Type':'application/json' , 'Accept':'*/*'}
-        vos_session = requests.Session()
-        vos_session.auth = ('dfw.ote@gmail.com','dfwote*1')
 	vos_ats_get_req = vos_session.get(api_proto+'://'+hostname+api_get_destinations+'?'+'name='+data['name'],headers=api_header_json,verify=False)
 	responsebody = vos_ats_get_req.json()
         print(responsebody)

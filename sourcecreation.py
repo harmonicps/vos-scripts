@@ -24,11 +24,10 @@ reader = csv.reader(file)
 count = 0
 for line in reader:
     api_proto = "https"
-    hostname = "10.105.163.3"
+    hostname = raw_input("Enter the VOS RT Address:\n")
+    vos_session = vos.vos_get_session()
     api_get_cloudlink = "/vos-api/uplink-hub/v1/uplinkGroups"
     api_header_json = {'user-agent':'Accept:application/json'}
-    vos_session = requests.Session()
-    vos_session.auth = ('dfw.ote@gmail.com','dfwote*1')
     vos_cloudlink_get_req = vos_session.get(api_proto+'://'+hostname+api_get_cloudlink,headers=api_header_json,verify=False)
     cloudlinkresponsebody = vos_cloudlink_get_req.json()
     for cloudlink in cloudlinkresponsebody:
