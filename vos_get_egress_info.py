@@ -24,9 +24,9 @@ mtasks = vos.mesos_get_tasks(mesos_master)
 magents = vos.mesos_get_agents(mesos_master)
 
 
-lio_nodes = get_egress_lio_tasks(mtasks,magents,vosrt,vos_session)
+lio_nodes = vos.get_egress_lio_tasks(mtasks,magents,vosrt,vos_session)
 
-mds_nodes = get_egress_mds_tasks(mtasks,magents)
+mds_nodes = vos.get_egress_mds_tasks(mtasks,magents)
 
 
 #{'node':ahostname , 'nodeip':agentip , 'groupid':groupid, 'noderole':noderole ,'liopoints': groupid , 'state':originstate}
@@ -35,13 +35,13 @@ mds_nodes = get_egress_mds_tasks(mtasks,magents)
 f_lio = open("node_lio_info.txt","w")
 for lio in lio_nodes:
 
-    f_lio.write("%s, %s, %s" %(lio['node'] , lio['nodeip'] , lio['groupid'], lio['noderole']))
+    f_lio.write("%s,%s,%s,%s\n" %(lio['node'] , lio['nodeip'] , lio['groupid'], lio['noderole']))
 
 f_lio.close()
 
 f_mds = open("node_mds_info.txt","w")
 for mds in mds_nodes:
 
-    f_mds.write("%s, %s, %s" %(mds['node'] , mds['nodeip'] , mds['Type']))
+    f_mds.write("%s,%s,%s\n" %(mds['node'] , mds['nodeip'] , mds['Type']))
 
 f_mds.close()
