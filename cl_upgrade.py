@@ -13,6 +13,7 @@
 import vos
 import requests
 import sys
+import json
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
@@ -20,7 +21,7 @@ requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 vos_session = vos.vos_get_session()
 
-cl_session = vos.vos_get_session("vos","vossdk")
+#cl_session = vos.vos_get_session("vos","vossdk")
 
 vosrt = raw_input("Enter the VOS RT Url:\n")
 
@@ -43,12 +44,12 @@ for cl in cl_list:
 
         uriinfo = 'https://'+cl['clip']+"/vos-api/system/v1/info"
 
-        ret = cl_session.get(uri,headers=api_header,verify=False)
+        ret = vos_session.get(uri,headers=api_header,verify=False)
 
         if ret.status_code == 403:
             ret = vos_session.get(uri,headers=api_header,verify=False)
 
-        retinfo = cl_session.get(uriinfo,headers=api_header,verify=False)
+        retinfo = vos_session.get(uriinfo,headers=api_header,verify=False)
 
         if retinfo.status_code == 403:
             retinfo = vos_session.get(uriinfo,headers=api_header,verify=False)
@@ -63,9 +64,9 @@ for cl in cl_list:
 
         uri = 'https://'+cl['clip']+"/vos-api/upgrade/v1/runtime/upgrade"
 
-        param = {"targetVersion": args}
+        param = json.dumps({"targetVersion":args})
 
-        ret = cl_session.post(uri,headers=api_header,data=param,verify=False)
+        ret = vos_session.post(uri,headers=api_header,data=param,verify=False)
 
         print ret
 

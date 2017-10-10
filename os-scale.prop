@@ -1,17 +1,17 @@
 os.username=harmonic
 os.password=harmonic
-os.project=harmonic-vos
+os.project=dfw-purple-pod3
 os.auth.url=http://10.105.137.8:5000/v2.0/
 
-stack.name=GT-VOS1.3.3.0.148_60-01
+stack.name=P3-VOS1.3.4.1.15_MQ-03
 
-stack.ingest.nodes.num=10
-stack.egress.nodes.num=5
-stack.control.nodes.num=17
+stack.ingest.nodes.num=55
+stack.egress.nodes.num=31
+stack.control.nodes.num=6
 
-stack.initial.ingest.nodes.num=3
-stack.initial.egress.nodes.num=3
-stack.initial.control.nodes.num=17
+stack.initial.ingest.nodes.num=30
+stack.initial.egress.nodes.num=10
+stack.initial.control.nodes.num=6
 
 stack.bintray.password=7b7486beabf92f2391faf0421b28668758f781ad
 stack.mediagrid.password=

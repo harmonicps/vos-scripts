@@ -5,7 +5,7 @@
 # Author: Satish Botla
 # Version 2
 # Input: ats_create_parameters.csv
-        type,destinationname,redundancyMode,outputType,ipAddress,ipPort,cloudlinkGroupId,destinationProfileId respectively.
+#        type,destinationname,redundancyMode,outputType,ipAddress,ipPort,cloudlinkGroupId,destinationProfileId respectively.
 ######################################
 import csv
 import json
@@ -18,11 +18,22 @@ import uuid
 
 null = None
 false = False
-file = open('ats_create_parameters_2017-07-17.csv','r')
+file = open('ats_create_parameters.csv','r')
 reader = csv.reader(file)
 count = 0
+api_proto = "https"
+hostname = raw_input("Enter the VOS RT Address:\n")
+vos_session = vos.vos_get_session()
+api_get_cloudlink = "/vos-api/uplink-hub/v1/uplinkGroups"
+api_header_json = {'user-agent':'Accept:application/json'}
+vos_cloudlink_get_req = vos_session.get(api_proto+'://'+hostname+api_get_cloudlink,headers=api_header_json,verify=False)
+cloudlinkresponsebody = vos_cloudlink_get_req.json()
 
 for line in reader:
+        for cloudlink in cloudlinkresponsebody:
+            if(cloudlink['name'] == line[6]):
+                uplinkGroupId = cloudlink['id']
+                #print(uplinkGroupId)
         data = {
   "id": "",
   "type": line[0],
@@ -38,7 +49,7 @@ for line in reader:
         "ipNetworkAddress": null,
         "ipAddress": line[4],
         "ipPort": line[5],
-        "cloudlinkGroupId": line[6],
+        "cloudlinkGroupId": uplinkGroupId,
         "cloudlinkId": null,
         "outputMonitor": False,
         "ipAddressForMonitoring": null,
@@ -51,19 +62,16 @@ for line in reader:
   "embeddedDestinationProfile": null
 }
         info_as_json = json.dumps(data)
-        api_proto = "https"
-        hostname = raw_input("Enter the VOS RT Address:\n")
-        vos_session = vos.vos_get_session()
         api_post_dest = "/vos-api/configure/v1/destinations"
-	api_get_destinations = "/vos-api/configure/v1/destinations"
+        api_get_destinations = "/vos-api/configure/v1/destinations"
         api_header_json = {'user-agent':'Accept:application/json'}
         api_header_serv_post = {'Content-Type':'application/json' , 'Accept':'*/*'}
-	vos_ats_get_req = vos_session.get(api_proto+'://'+hostname+api_get_destinations+'?'+'name='+data['name'],headers=api_header_json,verify=False)
-	responsebody = vos_ats_get_req.json()
+        vos_ats_get_req = vos_session.get(api_proto+'://'+hostname+api_get_destinations+'?'+'name='+data['name'],headers=api_header_json,verify=False)
+        responsebody = vos_ats_get_req.json()
         print(responsebody)
-	if(responsebody != []):
-	    print('destination already created')
-	else:	
+        if(responsebody != []):
+            print('destination already created')
+        else:
             vos_ats_req = vos_session.post(api_proto+'://'+hostname+api_post_dest,headers=api_header_serv_post,data=info_as_json,verify=False)
             if vos_ats_req.status_code != 200:
                 print("Error Posting the destination")
@@ -72,5 +80,4 @@ for line in reader:
                 count = count+1
                 print('Destination added successfully :' +line[0] + ',' + line[1]+ ',' + line[4]+ ',' + line[5]+ ',' + line[7])
                 time.sleep(10)
-print(count , " destinations added")
 

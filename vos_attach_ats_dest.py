@@ -33,7 +33,7 @@ def attach_dest(did,dname):
     ret = "Service %s does not Exist for this Destination" %(srvname)
 
     if sv_mod:
-        sv_mod[0]['destinationsId'].insert(0,did)
+        sv_mod[0]['destinationsId'].append(did)
 
         serv_j = json.dumps(sv_mod[0])
 

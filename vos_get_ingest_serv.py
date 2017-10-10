@@ -12,7 +12,7 @@
 # vos.py needs to be in the same path as this script.
 import vos
 
-mesos_master = "10.105.168.19"
+mesos_master = raw_input("Enter the Mesos Master IP:\n")
 
 magents = vos.mesos_get_agents(mesos_master)
 

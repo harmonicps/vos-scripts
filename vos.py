@@ -26,9 +26,26 @@ import sys
 import argparse
 import uuid
 import re
+import datetime
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+
+
+
+def log_write(l_type,l_msg,l_file):
+
+    log_file = open(l_file,'a')
+
+    print l_msg + '\n'
+    
+    now = datetime.datetime.now()
+    
+    t_now = now.strftime("%m-%d-%Y %H:%M:%S - ")
+
+    log_file.write(t_now + l_type + ' - ' + l_msg + '\n')
+
+    log_file.close()
 
 
 def check_request(code,uri=""):
@@ -189,6 +206,48 @@ def vos_get_notifications(state,result_count,vosrt,session="",proto="https"):
     return req
 
 
+def vos_get_image_all(vosrt,session="",proto="https"):
+
+    if not session:
+        session = vos_get_session()
+
+    api_get = "/vos-api/configure/v1/images"    
+    
+    api_header = {'user-agent':'Accept: */*'}
+
+    uri = proto+'://'+vosrt+api_get
+
+    req = session.get(uri,headers=api_header,verify=False)
+
+    #Checks if the Request was successful
+    check_request(req.status_code,uri)
+
+    return req
+
+def vos_add_image(param,vosrt,session="",proto="https"):
+    if not session:
+        session = vos_get_session()
+
+    api_header = {'Content-Type':'application/json' , 'Accept':'*/*'}
+
+    uri = proto+'://'+vosrt+"/vos-api/configure/v1/images"
+
+    ret = session.post(uri,headers=api_header,data=param,verify=False)
+
+    new_img = ret.json()
+
+    if ret.status_code == 200:
+
+        print "Image URL %s with ID %s created with the following Params:\n" %(new_img['url'] , new_img['id'])
+        print param
+        print "\n"
+
+    else:
+        print "Error creating service with Error: %s" %ret
+    
+    return ret 
+
+
 def vos_get_source_all(vosrt,session="",proto="https"):
 
     if not session:
@@ -224,6 +283,103 @@ def vos_get_source_name(srcname,vosrt,session="",proto="https"):
     check_request(req.status_code,uri)
 
     return req
+
+def vos_get_source_id(srcid,vosrt,session="",proto="https"):
+
+    if not session:
+        session = vos_get_session()
+
+    api_get = "/vos-api/configure/v1/sources/"+ srcid  
+    
+    api_header = {'user-agent':'Accept: */*'}
+
+    uri = proto+'://'+vosrt+api_get
+
+    req = session.get(uri,headers=api_header,verify=False)
+
+    #Checks if the Request was successful
+    check_request(req.status_code,uri)
+
+    return req
+
+
+def vos_get_destination_all(vosrt,session="",proto="https"):
+
+    if not session:
+        session = vos_get_session()
+
+    api_get = "/vos-api/configure/v1/destinations"    
+    
+    api_header = {'user-agent':'Accept: */*'}
+
+    uri = proto+'://'+vosrt+api_get
+
+    req = session.get(uri,headers=api_header,verify=False)
+
+    #Checks if the Request was successful
+    check_request(req.status_code,uri)
+
+    return req
+
+def vos_get_destination_name(dstname,vosrt,session="",proto="https"):
+
+    if not session:
+        session = vos_get_session()
+
+    api_get = "/vos-api/configure/v1/destinations"+"?name="+dstname    
+    
+    api_header = {'user-agent':'Accept: */*'}
+
+    uri = proto+'://'+vosrt+api_get
+
+    req = session.get(uri,headers=api_header,verify=False)
+
+    #Checks if the Request was successful
+    check_request(req.status_code,uri)
+
+    return req
+
+def vos_get_destination_id(dstid,vosrt,session="",proto="https"):
+
+    if not session:
+        session = vos_get_session()
+
+    api_get = "/vos-api/configure/v1/destinations/"+ dstid  
+    
+    api_header = {'user-agent':'Accept: */*'}
+
+    uri = proto+'://'+vosrt+api_get
+
+    req = session.get(uri,headers=api_header,verify=False)
+
+    #Checks if the Request was successful
+    check_request(req.status_code,uri)
+
+    return req
+
+def vos_add_destination(param,vosrt,session="",proto="https"):
+    
+    if not session:
+        session = vos_get_session()
+
+    api_header = {'Content-Type':'application/json' , 'Accept':'*/*'}
+
+    uri = proto+'://'+vosrt+"/vos-api/configure/v1/destinations"
+
+    ret = session.post(uri,headers=api_header,data=param,verify=False)
+
+    new_dest = ret.json()
+
+    if ret.status_code == 200:
+
+        print "Destination %s with ID %s created with the following Params:\n" %(new_dest['name'] , new_dest['id'])
+        print param
+        print "\n"
+
+    else:
+        print "Error creating Destination with Error: %s" %ret
+    
+    return ret
 
 def vos_get_service_id(servid,vosrt,session="",proto="https"):
 
@@ -335,7 +491,7 @@ def vos_service_add(param,vosrt,session="",proto="https"):
         print "\n"
 
     else:
-        print "Error creating service with Error: %s" %ret
+        print "Error creating Service with Error: %s" %ret
     
     return ret 
 
@@ -359,7 +515,7 @@ def vos_add_source(param,vosrt,session="",proto="https"):
         print "\n"
 
     else:
-        print "Error creating service with Error: %s" %ret
+        print "Error creating Source with Error: %s" %ret
     
     return ret
 
@@ -430,6 +586,18 @@ def vos_service_online(service,vosrt,session="",proto="https",upgrade=False):
 
     return ret
 
+
+def vos_get_clgrp_id_from_name(clname,vosrt,session="",proto="https"):
+
+    cl_grp_id = ""
+    
+    cl_list = vos_get_cl_list(vosrt,session,proto)
+
+    for cl in cl_list:
+        if clname == cl['clname']:
+            cl_grp_id = cl['clgroup']
+
+    return cl_grp_id
 
 
 def vos_get_cl_list(vosrt,session="",proto="https"):
@@ -599,11 +767,11 @@ def vos_get_live_ingest(tasks,agents,vosrt,session="",proto="https"):
         lio_servid = lio_desc[1].strip().split(",")[0]
         lio_pkge =  lio_desc[2].strip()       
 
-        serv = vos_get_service_id(lio_servid,vosrt,session,proto).json()
+        serv = vos_get_service_id(lio_servid,vosrt,session,proto)
         
         if serv.status_code == 200:
 
-            lio_servname = serv['name']
+            lio_servname = serv.json()['name']
     
             for endpoint in lio['endPoints']:
                 lio_state = endpoint['state']
