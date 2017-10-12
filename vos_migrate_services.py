@@ -50,9 +50,9 @@ def create_image(imgurl,vosrt,vos_session):
 
     param = json.dumps({'id':img_id, 'url':imgurl})
 
-    ret = vos.vos_add_image(param,vosrt,vos_session)
+    vos_ret = vos.vos_add_image(param,vosrt,vos_session)
 
-    if ret.status_code == 200:
+    if vos_ret.status_code == 200:
         vos.log_write("INFO","Image URL %s ID: %s Created Successfully" %(imgurl,img_id),log_file)
         vos.log_write("INFO","\n %s \n" %vos_ret.text,log_file)
         return img_id
