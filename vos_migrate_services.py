@@ -11,7 +11,7 @@
 ###########################################################
 
 '''Example command:
-./vos_migrate_services.py --rt_from vosdashboard.dfwcpcpurple.pod1.ds.dtvops.net --rt_to vosdashboard.dfwcpcpurple.pod3.ds.dtvops.net 
+./vos_migrate_services.py --rt_from vosdashboard.dfwcpcpurple.pod1.ds.dtvops.net --rt_to vosdashboard.dfwcpcpurple.pod3.ds.dtvops.net
  --serv_file serv-f.txt --src_file src-f.txt --ats_file dest-f.txt --blackout_img http://myblackoutimage.com/img.png --sigloss_img http://signalossimage.com/img.png
 
 '''
@@ -63,14 +63,14 @@ def create_image(imgurl,vosrt,vos_session):
         sys.exit(2)
 
 def check_cl_file(clfile,iname):
-    
+
     cl = ""
     for item in clfile:
         item_name = item.split(',')[0]
 
         if iname == item_name:
             cl = item.split(',')[1].strip()
-    clfile.seek(0) 
+    clfile.seek(0)
 
     return cl
 
@@ -137,13 +137,13 @@ def create_serv(srvtxt,src_ids,dst_ids,blackout_id,vosrt,vos_session):
     srv_yaml[0]['serviceSources'] = []
     for src in src_ids:
         srv_yaml[0]['serviceSources'].append({'sourceId':src[0],'rank':src[1]})
-    
-    
+
+
     srv_yaml[0]['destinationId'] = dst_ids[0]
 
     srv_yaml[0]['destinationsId'] = dst_ids
 
-
+    srv_yaml[0]['controlState'] = "OFF"
     if srv_yaml[0]['addons']:
         srv_yaml[0]['addons']['scte35SlateAddon']['imageId'] = blackout_id
 
@@ -152,7 +152,7 @@ def create_serv(srvtxt,src_ids,dst_ids,blackout_id,vosrt,vos_session):
 
     vos_ret = vos.vos_service_add(param,vosrt,vos_session)
 
-    
+
 
     if vos_ret.status_code == 200:
         vos.log_write("INFO","Service %s ID: %s Created Successfully" %(srv_yaml[0]['name'],srv_yaml[0]['id']),log_file)
@@ -166,6 +166,107 @@ def create_serv(srvtxt,src_ids,dst_ids,blackout_id,vosrt,vos_session):
 
     return ret
 
+def drm_sys_process(rt_from,rt_to,vos_session):
+
+    drm_from = vos.vos_get_drmsys_all(rt_from,vos_session)
+
+    ret = True
+
+    for drmf in drm_from.json():
+
+        if vos.vos_get_drmsys_id(drmf['id'],rt_to,vos_session).status_code == 404:
+
+            drmf['resources'] = []
+
+            param = json.dumps(drmf)
+            vos_ret = vos.vos_drmsys_add(param,rt_to,vos_session)
+
+            if vos_ret.status_code == 200:
+                vos.log_write("INFO","DRM System %s ID: %s Created Successfully" %(drmf['name'],drmf['id']),log_file)
+                vos.log_write("INFO","\n %s \n" %vos_ret.text,log_file)
+                ret = True
+            else:
+                vos.log_write("ERROR","DRM System %s ID: %s FAILED TO CREATE !!!" %(drmf['name'],drmf['id']),log_file)
+                vos.log_write("ERROR","\n %s \n" %vos_ret,log_file)
+                vos.log_write("ERROR","\n %s \n" %vos_ret.text,log_file)
+                ret = False
+
+    return ret
+
+# Create The Reource for each DRM system used by the service
+def create_drm_resource(srv_drm,rt_from,rt_to,vos_session):
+    ret = True
+    for drmrsc in srv_drm:
+        createdrm = True
+        print "Resource ID: " + drmrsc['resourceId']
+        drm_to = vos.vos_get_drmsys_id(drmrsc['drmSystemId'],rt_to,vos_session)
+        a_resources = drm_to.json()['resources']
+        print a_resources
+
+        if drm_to.json()['resources']:
+            for drmtorsc in drm_to.json()['resources']:
+                if drmtorsc['id'] == drmrsc['resourceId']:
+                    vos.log_write("INFO","DRM Resource %s ID: %s Already Exists" %(drmtorsc['name'],drmtorsc['id']),log_file)
+                    createdrm = False
+
+        if createdrm:
+            drm_from = vos.vos_get_drmsys_id(drmrsc['drmSystemId'],rt_from,vos_session)
+            for drmfromrsc in drm_from.json()['resources']:
+                    drm_to_json = yaml.safe_load(drm_to.text)
+                    if drmfromrsc['id'] == drmrsc['resourceId']:
+                        print "Appending Resource ID: " + drmfromrsc['id']
+                        print drmfromrsc
+                        a_resources.append(drmfromrsc)
+
+            drm_to_json['resources']=a_resources
+            param = json.dumps(drm_to_json)
+
+            print param
+
+
+            vos_ret = vos.vos_mod_drm_system(drm_to_json['id'],param,rt_to,vos_session)
+
+            if vos_ret.status_code == 200:
+                vos.log_write("INFO","DRM Resource %s ID: %s Created Successfully" %(drmfromrsc['name'],drmfromrsc['id']),log_file)
+                vos.log_write("INFO","\n %s \n" %vos_ret.text,log_file)
+                ret = True
+            else:
+                vos.log_write("ERROR","DRM Resource %s ID: %s FAILED TO CREATE!!!" %(drmfromrsc['name'],drmfromrsc['id']),log_file)
+                vos.log_write("ERROR","\n %s \n" %vos_ret,log_file)
+                vos.log_write("ERROR","\n %s \n" %vos_ret.text,log_file)
+                ret = False
+
+
+            print "CREATING NEW RESOURCE ID %s - %s" %(drmrsc['resourceId'],drmrsc['drmSystemId'])
+    return ret
+
+
+#Convert Configuration to Single Profile
+def convert_single_prof(srv_file,sp_file,vosrt,vos_session):
+    
+    sp_trans = {}
+    sp_origin = {}
+
+    for sp in sp_file:
+        spl = sp.strip().split(',')
+        if "origin" in spl[0]:
+            if "gmott" in spl[0]:
+                sp_origin['gmott'] = spl[1]
+            else:
+                sp_origin['dfw'] = spl[1]
+        else:
+            if "480" in spl[0]:
+                sp_trans['480'] = spl[1]
+            elif "720" in spl[0]:      
+                sp_trans['720'] = spl[1]
+            elif "1080" in spl[0]:      
+                sp_trans['1080'] = spl[1]
+
+    print sp_trans
+
+    print sp_origin
+
+
 
 
 
@@ -178,7 +279,9 @@ def main(argv):
     parser.add_argument('--ats_file', dest='ats_file', action='store', help='Batch File with Destination - Cloudlink assignmet on the Destination RT', required=True)
     parser.add_argument('--blackout_img', dest='blackout_img', action='store', help='Blackout Slate URL for Services', required=True)
     parser.add_argument('--sigloss_img', dest='sigloss_img', action='store', help='Signal Loss Slate URL for Sources', required=True)
-
+    parser.add_argument('--enable_drm', dest='enable_drm', action='store_true', help='If system has DRM use this option', required=False)
+    parser.add_argument('--single_prof', dest='single_prof', action='store_true', help='Migrate channels as a single Profile', required=False)
+    parser.add_argument('--sp_file', dest='sp_file', action='store', help='Batch File with Profiles to use', required=False)
 
     args = parser.parse_args()
 
@@ -203,7 +306,7 @@ def main(argv):
     #Checks if file exists
     if not os.path.isfile(args.ats_file):
         print "File %s does not exist !!" %args.ats_file
-        sys.exit(2)    
+        sys.exit(2)
 
     #Open Files
     srv_f = open(args.serv_file)
@@ -245,18 +348,18 @@ def main(argv):
 
     srv_f.seek(0)
 
-    #Creates VOS Requests Session. It will prompt for user and password. 
+    #Creates VOS Requests Session. It will prompt for user and password.
     vos_session = vos.vos_get_session()
 
     # Loads variable with json with all images on the Destination RT
     imgs = vos.vos_get_image_all(rt_to,vos_session).json()
-    
+
     sigloss_id = check_image_exists(sigloss_img,imgs)
     blackout_id = check_image_exists(blackout_img,imgs)
 
     #Creates signall loss image
     if not sigloss_id:
-        
+
         sigloss_id = create_image(sigloss_img,rt_to,vos_session)
 
 
@@ -271,20 +374,28 @@ def main(argv):
 
     if servs.status_code == 200:
 
+        if args.enable_drm:
+            if not drm_sys_process(rt_from,rt_to,vos_session):
+                vos.log_write("ERROR","Could not Process the DRM Systems. Script is Aborting!!!!",log_file)
+                sys.exit(2)
+            drm_from = vos.vos_get_drmsys_all(rt_from,vos_session)
+
+
         for srv in servs.json():
 
             srv_name = srv['name']
-            
+
             for item in srv_f:
+                
                 if item.strip() == srv_name:
 
-                    vos.log_write("INFO","Processing Service: %s" %srv['name'],log_file) 
+                    vos.log_write("INFO","Processing Service: %s" %srv['name'],log_file)
 
                     if vos.vos_get_service_name(srv_name,rt_to,vos_session).json():
 
                         vos.log_write("INFO","Service %s already exists in RT %s. Skipping the processing for service.\n" %(srv_name,rt_to),log_file)
                         break
-                    
+
                     #Processing sources
                     src_ids = []
                     src_processed = True
@@ -297,17 +408,17 @@ def main(argv):
                                 vos.log_write("ERROR","Source to Cloudlink Assignment not available on file %s" %args.src_file,log_file)
                                 src_processed = False
                                 break
-                            
+
                             cl_grpid = vos.vos_get_clgrp_id_from_name(src_cl,rt_to,vos_session)
 
                             if not cl_grpid:
                                 vos.log_write("ERROR","Cloudlink %s assigned for Source %s does not exist in the Destination RT. Aborting Service %s Configuration !" %(src_cl,src_from.json()['name'],srv_name),log_file)
                                 src_processed = False
-                                break                            
+                                break
 
                             print "Creating Source...."
                             if not create_source(src_from.text,cl_grpid,sigloss_id,rt_to,vos_session):
-                                vos.log_write("ERROR","Source %s could not be Created. Aborting Service %s Creation!!!" %(src_from.json()['name'],srv_name),log_file) 
+                                vos.log_write("ERROR","Source %s could not be Created. Aborting Service %s Creation!!!" %(src_from.json()['name'],srv_name),log_file)
                                 src_processed = False
                                 break
 
@@ -318,7 +429,7 @@ def main(argv):
                     # Stop Processing the Service if any error Occurs.
                     if not src_processed:
                         vos.log_write("ERROR","Service %s Could not be Processed due to Errors Above" %srv_name,log_file)
-                        break                       
+                        break
 
                     #Processing Destinations
                     dst_ids = []
@@ -326,7 +437,7 @@ def main(argv):
                     for dst in srv['destinationsId']:
                         dst_from = vos.vos_get_destination_id(dst,rt_from,vos_session)
                         dst_to = vos.vos_get_destination_name(dst_from.json()['name'],rt_to,vos_session).json()
-                        
+
                         if not dst_to:
                             if dst_from.json()['type'] == "ATS":
                                 dst_cl = check_cl_file(dst_f,dst_from.json()['name'])
@@ -340,40 +451,84 @@ def main(argv):
                                 if not cl_grpid:
                                     vos.log_write("ERROR","Cloudlink %s assigned for Destination %s does not exist in the Destination RT. Aborting Service %s Configuration !" %(dst_cl,dst_from.json()['name'],srv_name),log_file)
                                     dst_processed = False
-                                    break     
+                                    break
 
                                 if not create_dest(dst_from.text,cl_grpid,rt_to,vos_session):
-                                    vos.log_write("ERROR","Destination %s could not be Created. Aborting Service %s Creation!!!" %(dst_from.json()['name'],srv_name),log_file) 
+                                    vos.log_write("ERROR","Destination %s could not be Created. Aborting Service %s Creation!!!" %(dst_from.json()['name'],srv_name),log_file)
                                     dst_processed = False
                                     break
 
                                 dst_ids.append(dst_from.json()['id'])
                             else:
                                 if not create_dest(dst_from.text,"",rt_to,vos_session):
-                                    vos.log_write("ERROR","Destination %s could not be Created. Aborting Service %s Creation!!!" %(dst_from.json()['name'],srv_name),log_file) 
+                                    vos.log_write("ERROR","Destination %s could not be Created. Aborting Service %s Creation!!!" %(dst_from.json()['name'],srv_name),log_file)
                                     dst_processed = False
                                     break
 
                                 dst_ids.append(dst_from.json()['id'])
 
                         else:
-                            dst_ids.append(dst_to[0]['id'])                          
+                            dst_ids.append(dst_to[0]['id'])
 
-    
+
                     # Stop Processing the Service if any error Occurs.
                     if not dst_processed:
                         vos.log_write("ERROR","Service %s Could not be Processed due to Errors Above" %srv_name,log_file)
-                        break   
-    
-                    #Create Service
+                        break
+
+                    #Get service from the Origin RT.
                     srv_from = vos.vos_get_service_name(srv_name,rt_from,vos_session)
 
+                    srvf_json = srv_from.json()
+
+                    #Create DRM Resources if existent.
+                    if  srv_from.json()[0]['addons']:
+                        if srv_from.json()[0]['addons']['drmAddon']:
+
+                            #Make sure Script is run with --enable_drm option
+                            if not args.enable_drm:
+                                vos.log_write("ERROR","Service %s Has DRM Configuration. Run the script with the --enable_drm Option" %(srv_from.json()[0]['name']),log_file)
+                                sys.exit(2)
+
+                            if not create_drm_resource(srv_from.json()[0]['addons']['drmAddon']['settings'],rt_from,rt_to,vos_session):
+                                vos.log_write("ERROR","Could not process DRM Resource Configuration. Script Aborting",log_file)
+                                sys.exit(2)
+
+
+                    #Create Service
                     if not create_serv(srv_from.text,src_ids,dst_ids,blackout_id,rt_to,vos_session):
                         vos.log_write("ERROR","Service %s Could not be Created. Check log file %s for detail" %(srv_name,log_file),log_file)
 
 
 
             srv_f.seek(0)
+
+    #Convert System to Single Profile.
+    if args.single_prof:
+
+        sp_file_sample = '''
+                         dfw.720,b9fb7c25-dd8f-868f-96be-1f02115c3fd6
+                         dfw.480,29288a15-c5b6-695d-f38a-0113c6226b7d
+                         dfw.1080,79ee6444-7521-b66f-ad17-7fa7e9a09a12
+                         dfw.origin,99686edd-ac8a-a87f-0524-fd5af40c1a85
+                         gmott.origin,2d8ff877-a7e5-7096-a872-eefd5780068f
+                         '''
+    
+        srv_f.seek(0)
+
+        if not args.sp_file:
+            print "Please use --sp_file option. File should look like:\n%s" %sp_file_sample
+            sys.exit(2)
+
+        #Checks if file exists
+        if not os.path.isfile(args.sp_file):
+            print "File %s does not exist!! Please use --sp_file option. File should look like:\n%s" %(args.serv_file,sp_file_sample)
+            sys.exit(2)
+
+    
+        sp_f = open(args.sp_file)
+
+        convert_single_prof(srv_f,sp_f,rt_to,vos_session)
 
 
 
