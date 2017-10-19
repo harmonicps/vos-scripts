@@ -62,6 +62,28 @@ def create_image(imgurl,vosrt,vos_session):
         vos.log_write("ERROR","\n %s \n" %vos_ret.text,log_file)
         sys.exit(2)
 
+
+def check_ats_parameter_file(dst_file,dest_name):   
+    
+    name = ""
+    ipAddress = ""
+ 	ipPort = ""
+ 	cloudlinkGroupId = ""
+ 	destinationProfileId = ""
+ 	
+ 	for dest in dst_file:
+ 		d_name = dest.split(',')[0]
+
+ 	    if dest_name == d_name: 	
+ 	        name = item.split(',')[0].strip()
+ 	        ipAddress = item.split(',')[1].strip()
+ 	        ipPort = item.split(',')[2].strip()
+ 	        cloudlinkGroupId = item.split(',')[3].strip()
+ 	        destinationProfileId = item.split(',')[4].strip()
+    clfile.seek(0)
+
+    return [name,ipAddress,ipPort,cloudlinkGroupId,destinationProfileId]
+
 def check_cl_file(clfile,iname):
 
     cl = ""
@@ -127,7 +149,51 @@ def create_dest(dsttxt,clgrpid="",vosrt="",vos_session=""):
 
     return ret
 
+def create_ats_destination(dest_param,clgrpid="",vosrt="",vos_session=""): 
+    data =  {
+  "id": "",
+  "type": "ATS",
+  "labels": [],
+  "name": dest_param[0],
+  "outputs": [
+    {
+      "id": str(uuid.uuid4()),
+      "redundancyMode": "MANDATORY",
+      "rank": 1,
+      "outputType": "HARMONIC_CLOUDLINK",
+      "ipSettings": {
+        "ipNetworkAddress": null,
+        "ipAddress": dest_param[1],
+        "ipPort": dest_param[2],
+        "cloudlinkGroupId": clgrpid,
+        "cloudlinkId": null,
+        "outputMonitor": False,
+        "ipAddressForMonitoring": null,
+        "ipPortForMonitoring": 0
+      },
+      "originSettings": null
+    }
+  ],
+  "destinationProfileId": dest_param[4],
+  "embeddedDestinationProfile": null
+}  
+    param = json.dumps(data)
+    vos_ret = vos.vos_add_destination(param,vosrt,vos_session)
+    responsebody = vos_ret.json()
+    vos_ret_id = responsebody[0]['id']
 
+    if vos_ret.status_code == 200:
+        vos.log_write("INFO","Destination %s ID: %s Created Successfully" %(data['name'],vos_ret_id),log_file)
+        vos.log_write("INFO","\n %s \n" %vos_ret.text,log_file)
+        ret = vos_ret_id
+    else:
+        vos.log_write("ERROR","Destination %s ID: %s FAILED TO CREATE !!!" %(data['name'],""),log_file)
+        vos.log_write("ERROR","\n %s \n" %vos_ret,log_file)
+        vos.log_write("ERROR","\n %s \n" %vos_ret.text,log_file)
+        ret = ""
+
+    return ret    
+  
 def create_serv(srvtxt,src_ids,dst_ids,blackout_id,vosrt,vos_session):
 
     srv_yaml = yaml.safe_load(srvtxt)
@@ -240,7 +306,6 @@ def create_drm_resource(srv_drm,rt_from,rt_to,vos_session):
             print "CREATING NEW RESOURCE ID %s - %s" %(drmrsc['resourceId'],drmrsc['drmSystemId'])
     return ret
 
-
 #Convert Configuration to Single Profile
 def convert_single_prof(srv_file,sp_file,vosrt,vos_session):
     
@@ -276,7 +341,7 @@ def main(argv):
     parser.add_argument('--rt_to', dest='rt_to', action='store', help='RT where to import Configuration into.', required=True)
     parser.add_argument('--serv_file', dest='serv_file', action='store', help='Batch File with services to be migrated.', required=True)
     parser.add_argument('--src_file', dest='src_file', action='store', help='Batch File with Source - Cloudlink assignmet on the Destination RT', required=True)
-    parser.add_argument('--ats_file', dest='ats_file', action='store', help='Batch File with Destination - Cloudlink assignmet on the Destination RT', required=True)
+    parser.add_argument('--ats_file', dest='ats_file', action='store', help='Batch File with ATS Destination parameters on the Destination RT', required=True)
     parser.add_argument('--blackout_img', dest='blackout_img', action='store', help='Blackout Slate URL for Services', required=True)
     parser.add_argument('--sigloss_img', dest='sigloss_img', action='store', help='Signal Loss Slate URL for Sources', required=True)
     parser.add_argument('--enable_drm', dest='enable_drm', action='store_true', help='If system has DRM use this option', required=False)
@@ -303,6 +368,7 @@ def main(argv):
         print "File %s does not exist !!" %args.src_file
         sys.exit(2)
 
+
     #Checks if file exists
     if not os.path.isfile(args.ats_file):
         print "File %s does not exist !!" %args.ats_file
@@ -314,7 +380,6 @@ def main(argv):
     src_f = open(args.src_file)
 
     dst_f = open(args.ats_file)
-
 
     print "\nScript will Migrate the Services, Sources and Destinations\n"
 
@@ -440,6 +505,26 @@ def main(argv):
 
                         if not dst_to:
                             if dst_from.json()['type'] == "ATS":
+                            	
+
+                            	dest_parameters = check_ats_parameter_file(dst_f,dst_from.json()['name'])
+                            	if not dest_parameters:
+                            		vos.log_write("ERROR","Destination parameters are not available on file %s" %args.ats_file,log_file)
+                            		dst_processed = False
+                                    break
+
+                                cl_grpid = vos.vos_get_clgrp_id_from_name(dest_parameters[3],rt_to,vos_session)
+
+                                if not cl_grpid:
+                                    vos.log_write("ERROR","Cloudlink %s assigned for Destination %s does not exist in the Destination RT. Aborting Service %s Configuration !" %(dest_parameters[3],dst_from.json()['name'],srv_name),log_file)
+                                    dst_processed = False
+                                    break
+                                if not create_ats_destination(dest_parameters,cl_grpid,rt_to,vos_session):
+                                	vos.log_write("ERROR","Destination %s could not be Created. Aborting Service %s Creation!!!" %(dst_from.json()['name'],srv_name),log_file)
+                                    dst_processed = False
+                                    break
+                                dest_id = create_ats_destination(dest_parameters,cl_grpid,rt_to,vos_session)    
+"""
                                 dst_cl = check_cl_file(dst_f,dst_from.json()['name'])
                                 if not dst_cl:
                                     vos.log_write("ERROR","Destination to Cloudlink Assignment not available on file %s" %args.ats_file,log_file)
@@ -457,8 +542,8 @@ def main(argv):
                                     vos.log_write("ERROR","Destination %s could not be Created. Aborting Service %s Creation!!!" %(dst_from.json()['name'],srv_name),log_file)
                                     dst_processed = False
                                     break
-
-                                dst_ids.append(dst_from.json()['id'])
+"""
+                                dst_ids.append(dest_id)
                             else:
                                 if not create_dest(dst_from.text,"",rt_to,vos_session):
                                     vos.log_write("ERROR","Destination %s could not be Created. Aborting Service %s Creation!!!" %(dst_from.json()['name'],srv_name),log_file)
