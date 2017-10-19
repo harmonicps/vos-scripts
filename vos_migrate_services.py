@@ -175,12 +175,26 @@ def create_dest(dsttxt,clgrpid="",vosrt="",vos_session="",sp_origin={},single_pr
 
     return ret
 
-def create_ats_destination(dest_param,clgrpid="",vosrt="",vos_session=""):
+def create_ats_destination(dest_param,clgrpid="",vosrt="",vos_session="",single_prof=False):
+    
+    
+    if single_prof:
+
+        if "tv" in dest_param[0] or "mobile" in dest_param[0]:
+             dest_sp = dest_param[0].split(".")
+             dest_sp.pop(3)
+             dest_name = (".").join(dest_sp)
+        else:
+            dest_name = dest_param[0]
+    else:
+        dest_name = dest_param[0] 
+
+
     data =  {
   "id": "",
   "type": "ATS",
   "labels": [],
-  "name": dest_param[0],
+  "name": dest_name,
   "outputs": [
     {
       "id": str(uuid.uuid4()),
@@ -607,7 +621,7 @@ def main(argv):
                                     dst_processed = False
                                     break
 
-                                dest_id = create_ats_destination(dest_parameters,cl_grpid,rt_to,vos_session)
+                                dest_id = create_ats_destination(dest_parameters,cl_grpid,rt_to,vos_session,single_prof)
 
                                 if not dest_id:
                                     vos.log_write("ERROR","Destination %s could not be Created. Aborting Service %s Creation!!!" %(dst_from.json()['name'],srv_name),log_file)
