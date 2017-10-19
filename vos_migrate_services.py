@@ -34,6 +34,7 @@ import datetime
 now = datetime.datetime.now()
 log_file = 'vos-migration-' + now.strftime("%Y-%m-%d-%H%M") + '.log'
 
+
 def check_image_exists(imgurl,imgs):
 
     img_id = ""
@@ -104,9 +105,35 @@ def create_source(srctxt,clgrpid,siglossid,vosrt,vos_session):
     return ret
 
 
-def create_dest(dsttxt,clgrpid="",vosrt="",vos_session=""):
+def create_dest(dsttxt,clgrpid="",vosrt="",vos_session="",sp_origin={},single_prof=False):
 
     dst_yaml = yaml.safe_load(dsttxt)
+
+    if single_prof:
+        if "mobile" in dst_yaml['name'] or "tv" in dst_yaml['name']:
+            dst_name = dst_yaml['name'].split(".")
+            dst_name.pop(3)
+            dst_yaml['name'] = (".").join(dst_name)
+
+        if "e_SS" in str(dst_yaml['outputs'][0]['originSettings']['originOutputEndPoints']):
+            print "THIS IS GMOTT\n"
+            dst_yaml['destinationProfileId'] = sp_origin['gmott']
+        else:
+            print "THIS IS DFW\n"
+            dst_yaml['destinationProfileId'] = sp_origin['dfw']
+
+        dst_array = []
+
+        for dst in dst_yaml['outputs'][0]['originSettings']['originOutputEndPoints']:
+            if dst['packagingProfileType'] == "e_INTERNAL":
+                dst_name.pop()
+                dst['publishName'] = (".").join(dst_name)
+                dst_array.append(dst)
+            else:
+                dst_array.append(dst)
+                
+        dst_yaml['outputs'][0]['originSettings']['originOutputEndPoints'] = dst_array
+
 
     if clgrpid:
         dst_yaml['outputs'][0]['ipSettings']['cloudlinkGroupId'] = clgrpid
@@ -128,11 +155,24 @@ def create_dest(dsttxt,clgrpid="",vosrt="",vos_session=""):
     return ret
 
 
-def create_serv(srvtxt,src_ids,dst_ids,blackout_id,vosrt,vos_session):
+def create_serv(srvtxt,src_ids,dst_ids,blackout_id,vosrt,vos_session,sp_trans={},single_prof=False):
 
     srv_yaml = yaml.safe_load(srvtxt)
 
-    print srv_yaml
+    if single_prof:
+        srv_name = get_serv_sp_name(srv_yaml[0]['name'])
+        if srv_name:
+            srv_yaml[0]['name'] = srv_name
+
+        if "480" in srv_name:
+            srv_yaml[0]['profileId'] = sp_trans['480']
+        elif "720" in srv_name:
+            srv_yaml[0]['profileId'] = sp_trans['720']
+        elif "1080" in srv_name:
+            srv_yaml[0]['profileId'] = sp_trans['1080']
+        else:
+            vos.log_write("ERROR","No Transcode Profile for Service %s !! Please Investigate !!" %srv_name,log_file)
+            
 
     srv_yaml[0]['serviceSources'] = []
     for src in src_ids:
@@ -194,7 +234,7 @@ def drm_sys_process(rt_from,rt_to,vos_session):
     return ret
 
 # Create The Reource for each DRM system used by the service
-def create_drm_resource(srv_drm,rt_from,rt_to,vos_session):
+def create_drm_resource(srv_drm,rt_from,rt_to,vos_session,single_prof=False):
     ret = True
     for drmrsc in srv_drm:
         createdrm = True
@@ -216,6 +256,15 @@ def create_drm_resource(srv_drm,rt_from,rt_to,vos_session):
                     if drmfromrsc['id'] == drmrsc['resourceId']:
                         print "Appending Resource ID: " + drmfromrsc['id']
                         print drmfromrsc
+
+                        if single_prof:
+                            rs_name_sp = drmfromrsc['name'].split(".")
+                            rs_name_sp.pop()
+                            drmfromrsc['name'] = (".").join(rs_name_sp)
+
+                            rs_id_sp = drmfromrsc['resourceId'].split("_")
+                            drmfromrsc['resourceId'] = rs_id_sp[0] 
+
                         a_resources.append(drmfromrsc)
 
             drm_to_json['resources']=a_resources
@@ -241,32 +290,16 @@ def create_drm_resource(srv_drm,rt_from,rt_to,vos_session):
     return ret
 
 
-#Convert Configuration to Single Profile
-def convert_single_prof(srv_file,sp_file,vosrt,vos_session):
-    
-    sp_trans = {}
-    sp_origin = {}
+def get_serv_sp_name(srvname):
 
-    for sp in sp_file:
-        spl = sp.strip().split(',')
-        if "origin" in spl[0]:
-            if "gmott" in spl[0]:
-                sp_origin['gmott'] = spl[1]
-            else:
-                sp_origin['dfw'] = spl[1]
-        else:
-            if "480" in spl[0]:
-                sp_trans['480'] = spl[1]
-            elif "720" in spl[0]:      
-                sp_trans['720'] = spl[1]
-            elif "1080" in spl[0]:      
-                sp_trans['1080'] = spl[1]
+    if "mobile" in srvname or "tv" in srvname:
+        srvnamesp = srvname.split(".")
+        srvnamesp.pop()
+        srvnamesp = (".").join(srvnamesp)
+    else:
+        srvnamesp = ""
 
-    print sp_trans
-
-    print sp_origin
-
-
+    return srvnamesp
 
 
 
@@ -292,6 +325,53 @@ def main(argv):
     blackout_img = args.blackout_img
 
     sigloss_img = args.sigloss_img
+
+    #Variables to be used when converting to Single Profile
+    single_prof = False
+
+    sp_trans = {}
+        
+    sp_origin = {}
+    
+    #Single Profile Option
+    if args.single_prof:
+
+        sp_file_sample = '''
+                         dfw.720,b9fb7c25-dd8f-868f-96be-1f02115c3fd6
+                         dfw.480,29288a15-c5b6-695d-f38a-0113c6226b7d
+                         dfw.1080,79ee6444-7521-b66f-ad17-7fa7e9a09a12
+                         dfw.origin,99686edd-ac8a-a87f-0524-fd5af40c1a85
+                         gmott.origin,2d8ff877-a7e5-7096-a872-eefd5780068f
+                         '''
+
+        if not args.sp_file:
+            print "Please use --sp_file option. File should look like:\n%s" %sp_file_sample
+            sys.exit(2)
+
+        #Checks if file exists
+        if not os.path.isfile(args.sp_file):
+            print "File %s does not exist!! Please use --sp_file option. File should look like:\n%s" %(args.serv_file,sp_file_sample)
+            sys.exit(2)
+
+        sp_f = open(args.sp_file)
+
+        for sp in sp_f:
+            spl = sp.strip().split(',')
+            if "origin" in spl[0]:
+                if "gmott" in spl[0]:
+                    sp_origin['gmott'] = spl[1]
+                else:
+                    sp_origin['dfw'] = spl[1]
+            else:
+                if "480" in spl[0]:
+                    sp_trans['480'] = spl[1]
+                elif "720" in spl[0]:      
+                    sp_trans['720'] = spl[1]
+                elif "1080" in spl[0]:      
+                    sp_trans['1080'] = spl[1]
+
+        single_prof = True
+
 
     #Checks if file exists
     if not os.path.isfile(args.serv_file):
@@ -384,6 +464,13 @@ def main(argv):
         for srv in servs.json():
 
             srv_name = srv['name']
+            
+            if single_prof:
+                srv_to_name = get_serv_sp_name(srv_name)
+                if not srv_to_name:
+                    srv_to_name = srv_name
+            else:
+                srv_to_name = srv_name 
 
             for item in srv_f:
                 
@@ -391,7 +478,7 @@ def main(argv):
 
                     vos.log_write("INFO","Processing Service: %s" %srv['name'],log_file)
 
-                    if vos.vos_get_service_name(srv_name,rt_to,vos_session).json():
+                    if vos.vos_get_service_name(srv_to_name,rt_to,vos_session).json():
 
                         vos.log_write("INFO","Service %s already exists in RT %s. Skipping the processing for service.\n" %(srv_name,rt_to),log_file)
                         break
@@ -460,7 +547,7 @@ def main(argv):
 
                                 dst_ids.append(dst_from.json()['id'])
                             else:
-                                if not create_dest(dst_from.text,"",rt_to,vos_session):
+                                if not create_dest(dst_from.text,"",rt_to,vos_session,sp_origin,single_prof):
                                     vos.log_write("ERROR","Destination %s could not be Created. Aborting Service %s Creation!!!" %(dst_from.json()['name'],srv_name),log_file)
                                     dst_processed = False
                                     break
@@ -490,46 +577,18 @@ def main(argv):
                                 vos.log_write("ERROR","Service %s Has DRM Configuration. Run the script with the --enable_drm Option" %(srv_from.json()[0]['name']),log_file)
                                 sys.exit(2)
 
-                            if not create_drm_resource(srv_from.json()[0]['addons']['drmAddon']['settings'],rt_from,rt_to,vos_session):
+                            if not create_drm_resource(srv_from.json()[0]['addons']['drmAddon']['settings'],rt_from,rt_to,vos_session,single_prof):
                                 vos.log_write("ERROR","Could not process DRM Resource Configuration. Script Aborting",log_file)
                                 sys.exit(2)
 
 
                     #Create Service
-                    if not create_serv(srv_from.text,src_ids,dst_ids,blackout_id,rt_to,vos_session):
+                    if not create_serv(srv_from.text,src_ids,dst_ids,blackout_id,rt_to,vos_session,sp_trans,single_prof):
                         vos.log_write("ERROR","Service %s Could not be Created. Check log file %s for detail" %(srv_name,log_file),log_file)
 
 
 
             srv_f.seek(0)
-
-    #Convert System to Single Profile.
-    if args.single_prof:
-
-        sp_file_sample = '''
-                         dfw.720,b9fb7c25-dd8f-868f-96be-1f02115c3fd6
-                         dfw.480,29288a15-c5b6-695d-f38a-0113c6226b7d
-                         dfw.1080,79ee6444-7521-b66f-ad17-7fa7e9a09a12
-                         dfw.origin,99686edd-ac8a-a87f-0524-fd5af40c1a85
-                         gmott.origin,2d8ff877-a7e5-7096-a872-eefd5780068f
-                         '''
-    
-        srv_f.seek(0)
-
-        if not args.sp_file:
-            print "Please use --sp_file option. File should look like:\n%s" %sp_file_sample
-            sys.exit(2)
-
-        #Checks if file exists
-        if not os.path.isfile(args.sp_file):
-            print "File %s does not exist!! Please use --sp_file option. File should look like:\n%s" %(args.serv_file,sp_file_sample)
-            sys.exit(2)
-
-    
-        sp_f = open(args.sp_file)
-
-        convert_single_prof(srv_f,sp_f,rt_to,vos_session)
-
 
 
 
