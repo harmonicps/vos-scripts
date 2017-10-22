@@ -322,6 +322,40 @@ def vos_get_drmsys_all(vosrt,session="",proto="https"):
     return req
 
 
+def vos_get_drm_settings(vosrt,session="",proto="https"):
+
+    if not session:
+        session = vos_get_session()
+
+    api_get = "/vos-api/scrambling/v1/drm/settings"     
+    
+    api_header = {'user-agent':'Accept: */*'}
+
+    uri = proto+'://'+vosrt+api_get
+
+    req = session.get(uri,headers=api_header,verify=False)
+
+    #Checks if the Request was successful
+    check_request(req.status_code,uri)
+
+    return req
+
+
+def vos_mod_drm_settings(param,vosrt,session="",proto="https"):
+    
+    if not session:
+        session = vos_get_session()
+
+    api_header_put = {'Content-Type':'application/json' , 'Accept':'*/*'}
+
+    uri = proto+'://'+vosrt+"/vos-api/scrambling/v1/drm/settings"
+
+    ret = session.put(uri,headers=api_header_put,data=param,verify=False)
+
+
+    return ret
+
+
 def vos_get_drmsys_id(drmid,vosrt,session="",proto="https"):
 
     if not session:
@@ -378,7 +412,6 @@ def vos_mod_drm_system(drmid,param,vosrt,session="",proto="https"):
 
     ret = session.put(uri,headers=api_header,data=param,verify=False)
 
-    new_source = ret.json()
 
     if ret.status_code == 200:
 

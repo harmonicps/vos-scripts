@@ -310,7 +310,22 @@ def drm_sys_process(rt_from,rt_to,vos_session):
                 vos.log_write("ERROR","\n %s \n" %vos_ret.text,log_file)
                 ret = False
 
+    drm_set_from = vos.vos_get_drm_settings(rt_from,vos_session)
+
+    if drm_set_from.json():
+        drm_settings = json.dumps(drm_set_from.json())
+
+        vos_ret = vos.vos_mod_drm_settings(drm_settings,rt_to,vos_session)
+
+        if not vos_ret.status_code == 200:
+            vos.log_write("ERROR","DRM Settings Failed to udpate !!!",log_file)
+            vos.log_write("ERROR","\n %s \n" %vos_ret,log_file)
+            vos.log_write("ERROR","\n %s \n" %vos_ret.text,log_file)
+            ret = False
+
     return ret
+
+
 
 # Create The Reource for each DRM system used by the service
 def create_drm_resource(srv_drm,rt_from,rt_to,vos_session,single_prof=False):
