@@ -34,6 +34,9 @@ import datetime
 now = datetime.datetime.now()
 log_file = 'vos-migration-' + now.strftime("%Y-%m-%d-%H%M") + '.log'
 
+#Seconds to wait in between Service Creation.
+sleep_sec = 5
+
 def check_image_exists(imgurl,imgs):
 
     img_id = ""
@@ -277,6 +280,7 @@ def create_serv(srvtxt,src_ids,dst_ids,blackout_id,vosrt,vos_session,sp_trans={}
         vos.log_write("INFO","Service %s ID: %s Created Successfully" %(srv_yaml[0]['name'],srv_yaml[0]['id']),log_file)
         vos.log_write("INFO","\n %s \n" %vos_ret.text,log_file)
         ret = True
+        time.sleep(sleep_sec)
     else:
         vos.log_write("ERROR","Service %s ID: %s FAILED TO CREATE !!!" %(srv_yaml[0]['name'],srv_yaml[0]['id']),log_file)
         vos.log_write("ERROR","\n %s \n" %vos_ret,log_file)
