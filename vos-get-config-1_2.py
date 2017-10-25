@@ -63,17 +63,21 @@ cl = vos_cl_req.json()
 
 
 print "*".join(("Service Name"  ,  "Service ID" , "State"  , "SRV Profile" , "SRV Prof Ver"  ,  "SRV Prof ID" , "Source Name" , "Source ID" ,  "SRC CL" , "SRC CL ID" , "SRC IP" ,\
-                "SRC Mcast"   ,"SRC Port"  ,  "Destination Name" ,  "Dest ID" , "Dst Type" , "Publish Name",  "ATS Mcast" ,  "ATS Port"  ,  "ATS CL" , "ATC CL ID" ,  "Dest Profile"  ,  "Dest Prof Ver",\
-                "Dest Prof ID"))
+                "SRC Mcast"   ,"SRC Port"  , "BCK Source Name" , "BCK Source ID" ,  "BCK SRC CL" , "BCK SRC CL ID" , "BCK SRC IP" , "BCK SRC Mcast"   ,"BCK SRC Port"  , "Destination Name" ,  "Dest ID" ,\
+                "Dst Type" , "Publish Name",  "ATS Mcast" ,  "ATS Port"  ,  "ATS CL" , "ATC CL ID" ,  "Dest Profile"  ,  "Dest Prof Ver", "Dest Prof ID"))
 
 
 for svitem in sv:
     sv_id = svitem['id']
     sv_name =  svitem['name']
-    sv_sour_id = svitem['serviceSources'][0]['sourceId']
     sv_dests_id = svitem['destinationsId']
     sv_prof_id = svitem['profileId']
     sv_state = svitem['controlState']
+
+    srv_src_ids = []
+
+    for src_item in svitem['serviceSources']:
+        srv_src_ids.append(src_item['sourceId'])
 
     
     for sv_dest_id in sv_dests_id:
@@ -113,22 +117,49 @@ for svitem in sv:
                         d_p_name =  pitem['name']
                         d_p_ver = pitem['customerVersion']    
     
-    
+
+        srb_id =   "NA"
+        srb_name = "NA"
+        srb_clid = "NA"
+        srb_sip =  "NA"
+        srb_mip =  "NA"
+        srb_udp =  "NA"
+        srb_cl =   "NA"
+
+        srcn = 1
+
         for sritem in sr:
-            sr_id = sritem['id']
-            if sr_id == sv_sour_id:
-                sr_name =  sritem['name']
-                sr_clid = sritem['inputs'][0]['zixiSettings']['harmonicUplinkSetting']['uplinkGroupId']
-                sr_sip = sritem['inputs'][0]['zixiSettings']['harmonicUplinkSetting']['ssmIpAddresses'][0]
-                sr_mip = sritem['inputs'][0]['zixiSettings']['harmonicUplinkSetting']['ipAddress']
-                sr_udp = str(sritem['inputs'][0]['zixiSettings']['harmonicUplinkSetting']['ipPort'])
-                for citem in cl:
-                    c_id = citem['id']
-                    if c_id == sr_clid:
-                        sr_cl = citem['name']
-                        break
-                    else:
-                        sr_cl = "NA"
+            src_id = sritem['id']
+            if src_id in srv_src_ids:                
+                if srcn == 1:
+                    sr_id = src_id 
+                    sr_name =  sritem['name']
+                    sr_clid = sritem['inputs'][0]['zixiSettings']['harmonicUplinkSetting']['uplinkGroupId']
+                    sr_sip = sritem['inputs'][0]['zixiSettings']['harmonicUplinkSetting']['ssmIpAddresses'][0]
+                    sr_mip = sritem['inputs'][0]['zixiSettings']['harmonicUplinkSetting']['ipAddress']
+                    sr_udp = str(sritem['inputs'][0]['zixiSettings']['harmonicUplinkSetting']['ipPort'])
+                    for citem in cl:
+                        c_id = citem['id']
+                        if c_id == sr_clid:
+                            sr_cl = citem['name']
+                            break
+                        else:
+                            sr_cl = "NA"
+                else:
+                    srb_id = src_id
+                    srb_name =  sritem['name']
+                    srb_clid = sritem['inputs'][0]['zixiSettings']['harmonicUplinkSetting']['uplinkGroupId']
+                    srb_sip = sritem['inputs'][0]['zixiSettings']['harmonicUplinkSetting']['ssmIpAddresses'][0]
+                    srb_mip = sritem['inputs'][0]['zixiSettings']['harmonicUplinkSetting']['ipAddress']
+                    srb_udp = str(sritem['inputs'][0]['zixiSettings']['harmonicUplinkSetting']['ipPort'])
+                    for citem in cl:
+                        c_id = citem['id']
+                        if c_id == sr_clid:
+                            srb_cl = citem['name']
+                            break
+                        else:
+                            srb_cl = "NA"
+                srcn += 1
 
         #print '*'.join((sv_name,sv_state,sr_name,sr_cl,sr_sip,sr_mip,sr_udp,d_name,d_type,d_ip,d_udp,d_cl,p_name,p_ver))
-        print '*'.join((sv_name,sv_id,sv_state,sr_p_name,sr_p_ver,sv_prof_id,sr_name,sv_sour_id,sr_cl,sr_clid,sr_sip,sr_mip,sr_udp,d_name,sv_dest_id,d_type,d_pub,d_ip,d_udp,d_cl,d_eclid,d_p_name,d_p_ver,d_prof_id))
+        print '*'.join((sv_name,sv_id,sv_state,sr_p_name,sr_p_ver,sv_prof_id,sr_name,sr_id,sr_cl,sr_clid,sr_sip,sr_mip,sr_udp,srb_name,srb_id,srb_cl,srb_clid,srb_sip,srb_mip,srb_udp,d_name,sv_dest_id,d_type,d_pub,d_ip,d_udp,d_cl,d_eclid,d_p_name,d_p_ver,d_prof_id))
