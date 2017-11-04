@@ -32,6 +32,7 @@ def main(argv):
     parser.add_argument('--import', dest='import_src', action='store_true', help='Import Sources from a File', required=False)
     parser.add_argument('--export', dest='export_src', action='store_true', help='Export Sources to a File', required=False)
     parser.add_argument('--associate_cl', dest='ass_cl', action='store_true', help='Associate CL to Source based on a File', required=False)
+    parser.add_argument('--set_audio_label', dest='set_audio_label', action='store_true', help='Set the Audio Label', required=False)
     parser.add_argument('--set-options', dest='set_opt', action='store_true', help='Set Other Misc. Options', required=False)
 
 
@@ -42,7 +43,7 @@ def main(argv):
         print "Pick Either --import or --export, but not Both. :-)"
         sys.exit(2)
 
-    if not args.import_src and not args.export_src and not args.ass_cl and not args.set_opt:
+    if not args.import_src and not args.export_src and not args.ass_cl and not args.set_opt and not args.set_audio_label:
         print "Specify either --import or --export option or --associate_cl"
         sys.exit(2)
 
@@ -245,6 +246,38 @@ def main(argv):
             param = json.dumps(sr_opt)
 
             print vos.vos_mod_source(sr_opt['id'],param,vosrt,vos_session)
+
+            time.sleep(10)
+
+
+    if args.set_audio_label:
+
+        srcs = vos.vos_get_source_all(vosrt,vos_session)
+
+        srcsy = yaml.safe_load(srcs.text)
+
+        for sr_opt in srcsy:
+
+            print sr_opt['id']
+            print "\n"
+
+            aud_label = 1
+            index = 0
+
+            for audio in sr_opt['inputs'][0]['zixiSettings']['grooming']['audioGrooming']['tracks']:
+                
+                if not audio['labels']:
+                    sr_opt['inputs'][0]['zixiSettings']['grooming']['audioGrooming']['tracks'][index]['labels'] = ["audio_" + str(aud_label)]
+
+                aud_label += 1
+                index += 1
+
+
+            param = json.dumps(sr_opt)
+
+            print param
+
+            #print vos.vos_mod_source(sr_opt['id'],param,vosrt,vos_session)
 
             time.sleep(10)
 

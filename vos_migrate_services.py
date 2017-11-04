@@ -22,7 +22,6 @@ import sys
 import argparse
 import os
 import json
-import vos
 import time
 import getpass
 import yaml
@@ -368,14 +367,11 @@ def create_drm_resource(srv_drm,rt_from,rt_to,vos_session,single_prof=False):
             drm_to_json['resources']=a_resources
             param = json.dumps(drm_to_json)
 
-            print param
-
-
             vos_ret = vos.vos_mod_drm_system(drm_to_json['id'],param,rt_to,vos_session)
 
             if vos_ret.status_code == 200:
-                vos.log_write("INFO","DRM Resource %s ID: %s Created Successfully" %(drmfromrsc['name'],drmfromrsc['id']),log_file)
-                vos.log_write("INFO","\n %s \n" %vos_ret.text,log_file)
+                vos.log_write("INFO","DRM Resource ID: %s Updated Successfully With Parameters Below:" %drm_to_json['id'],log_file)
+                vos.log_write("INFO","\n %s \n" %param,log_file)
                 ret = True
             else:
                 vos.log_write("ERROR","DRM Resource %s ID: %s FAILED TO CREATE!!!" %(drmfromrsc['name'],drmfromrsc['id']),log_file)
@@ -430,6 +426,12 @@ def main(argv):
     sp_trans = {}
 
     sp_origin = {}
+
+    srv_count = 0
+
+    dst_count = 0
+
+    src_count = 0
 
     #Single Profile Option
     if args.single_prof:
@@ -606,6 +608,8 @@ def main(argv):
                                 vos.log_write("ERROR","Source %s could not be Created. Aborting Service %s Creation!!!" %(src_from.json()['name'],srv_name),log_file)
                                 src_processed = False
                                 break
+                            
+                            src_count += 1
 
                             src_ids.append([src['sourceId'],src['rank']])
                         else:
@@ -647,6 +651,8 @@ def main(argv):
                                     dst_processed = False
                                     break
 
+                                dst_count += 1
+
                                 dst_ids.append(dest_id)
                             else:
                                 if not create_dest(dst_from.text,"",rt_to,vos_session,sp_origin,single_prof):
@@ -654,10 +660,18 @@ def main(argv):
                                     dst_processed = False
                                     break
 
-                                dst_ids.append(dst_from.json()['id'])
+                                dst_count += 1
+                                
+                                # Makes sure Origin Destination is in first position in the Service config not to break the config.
+                                dst_ids.insert(0,dst_from.json()['id'])
 
                         else:
-                            dst_ids.append(dst_to[0]['id'])
+
+                            # Makes sure Origin Destination is in first position in the Service config not to break the config.
+                            if not dst_to[0]['type'] == "ATS":
+                                dst_ids.insert(0,dst_to[0]['id'])
+                            else:
+                                dst_ids.append(dst_to[0]['id'])
 
 
                     # Stop Processing the Service if any error Occurs.
@@ -687,11 +701,16 @@ def main(argv):
                     #Create Service
                     if not create_serv(srv_from.text,src_ids,dst_ids,blackout_id,rt_to,vos_session,sp_trans,single_prof):
                         vos.log_write("ERROR","Service %s Could not be Created. Check log file %s for detail" %(srv_name,log_file),log_file)
-
-
-
+                    else:
+                        srv_count += 1
+                    
+            
             srv_f.seek(0)
 
+        #Logs the counts for configuration creation
+        vos.log_write("COUNT","Sources Configured: %s" %(str(src_count)),log_file)
+        vos.log_write("COUNT","Destinations Configured: %s" %(str(dst_count)),log_file)
+        vos.log_write("COUNT","Services Configured: %s" %(str(srv_count)),log_file)
 
 if __name__ == "__main__":
     main(sys.argv[1:])

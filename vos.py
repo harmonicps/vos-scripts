@@ -302,6 +302,20 @@ def vos_get_source_id(srcid,vosrt,session="",proto="https"):
 
     return req
 
+def vos_source_delete(srcid,vosrt,session="",proto="https"):
+  
+    if not session:
+        session = vos_get_session()
+
+    api_header = {'Content-Type':'application/json' , 'Accept':'*/*'}
+
+    uri = proto+'://'+vosrt+"/vos-api/configure/v1/sources/" + srcid
+
+    ret = session.delete(uri,headers=api_header,verify=False)
+
+    print "Deleting Source ID: %s \n" %srcid
+    
+    return ret  
 
 def vos_get_drmsys_all(vosrt,session="",proto="https"):
 
@@ -415,12 +429,12 @@ def vos_mod_drm_system(drmid,param,vosrt,session="",proto="https"):
 
     if ret.status_code == 200:
 
-        print "DRM System %s with ID %s changed with the following Params:\n" %(new_source['name'] , new_source['id'])
+        print "DRM System with ID %s changed with the following Params:\n" %drmid
         print param
         print "\n"
 
     else:
-        print "Error creating service with Error: %s" %ret
+        print "Error Changing DRM System with Error: %s" %ret
     
     return ret
 
@@ -503,6 +517,21 @@ def vos_add_destination(param,vosrt,session="",proto="https"):
         print "Error creating Destination with Error: %s" %ret
     
     return ret
+
+def vos_destination_delete(dstid,vosrt,session="",proto="https"):
+  
+    if not session:
+        session = vos_get_session()
+
+    api_header = {'Content-Type':'application/json' , 'Accept':'*/*'}
+
+    uri = proto+'://'+vosrt+"/vos-api/configure/v1/destinations/" + dstid
+
+    ret = session.delete(uri,headers=api_header,verify=False)
+
+    print "Deleting Destination ID: %s \n" %dstid
+    
+    return ret  
 
 def vos_get_service_id(servid,vosrt,session="",proto="https"):
 

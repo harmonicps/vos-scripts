@@ -77,7 +77,8 @@ for svitem in sv:
     srv_src_ids = []
 
     for src_item in svitem['serviceSources']:
-        srv_src_ids.append(src_item['sourceId'])
+        srv_src_ids.append({'rank':src_item['rank'],'srcid':src_item['sourceId']})
+
 
     
     for sv_dest_id in sv_dests_id:
@@ -126,40 +127,40 @@ for svitem in sv:
         srb_udp =  "NA"
         srb_cl =   "NA"
 
-        srcn = 1
 
         for sritem in sr:
             src_id = sritem['id']
-            if src_id in srv_src_ids:                
-                if srcn == 1:
-                    sr_id = src_id 
-                    sr_name =  sritem['name']
-                    sr_clid = sritem['inputs'][0]['zixiSettings']['harmonicUplinkSetting']['uplinkGroupId']
-                    sr_sip = sritem['inputs'][0]['zixiSettings']['harmonicUplinkSetting']['ssmIpAddresses'][0]
-                    sr_mip = sritem['inputs'][0]['zixiSettings']['harmonicUplinkSetting']['ipAddress']
-                    sr_udp = str(sritem['inputs'][0]['zixiSettings']['harmonicUplinkSetting']['ipPort'])
-                    for citem in cl:
-                        c_id = citem['id']
-                        if c_id == sr_clid:
-                            sr_cl = citem['name']
-                            break
-                        else:
-                            sr_cl = "NA"
-                else:
-                    srb_id = src_id
-                    srb_name =  sritem['name']
-                    srb_clid = sritem['inputs'][0]['zixiSettings']['harmonicUplinkSetting']['uplinkGroupId']
-                    srb_sip = sritem['inputs'][0]['zixiSettings']['harmonicUplinkSetting']['ssmIpAddresses'][0]
-                    srb_mip = sritem['inputs'][0]['zixiSettings']['harmonicUplinkSetting']['ipAddress']
-                    srb_udp = str(sritem['inputs'][0]['zixiSettings']['harmonicUplinkSetting']['ipPort'])
-                    for citem in cl:
-                        c_id = citem['id']
-                        if c_id == sr_clid:
-                            srb_cl = citem['name']
-                            break
-                        else:
-                            srb_cl = "NA"
-                srcn += 1
+            
+            for src in srv_src_ids:
+                if src_id == src['srcid']:                
+                    if src['rank'] == 1:
+                        sr_id = src_id 
+                        sr_name =  sritem['name']
+                        sr_clid = sritem['inputs'][0]['zixiSettings']['harmonicUplinkSetting']['uplinkGroupId']
+                        sr_sip = sritem['inputs'][0]['zixiSettings']['harmonicUplinkSetting']['ssmIpAddresses'][0]
+                        sr_mip = sritem['inputs'][0]['zixiSettings']['harmonicUplinkSetting']['ipAddress']
+                        sr_udp = str(sritem['inputs'][0]['zixiSettings']['harmonicUplinkSetting']['ipPort'])
+                        for citem in cl:
+                            c_id = citem['id']
+                            if c_id == sr_clid:
+                                sr_cl = citem['name']
+                                break
+                            else:
+                                sr_cl = "NA"
+                    else:
+                        srb_id = src_id
+                        srb_name =  sritem['name']
+                        srb_clid = sritem['inputs'][0]['zixiSettings']['harmonicUplinkSetting']['uplinkGroupId']
+                        srb_sip = sritem['inputs'][0]['zixiSettings']['harmonicUplinkSetting']['ssmIpAddresses'][0]
+                        srb_mip = sritem['inputs'][0]['zixiSettings']['harmonicUplinkSetting']['ipAddress']
+                        srb_udp = str(sritem['inputs'][0]['zixiSettings']['harmonicUplinkSetting']['ipPort'])
+                        for citem in cl:
+                            c_id = citem['id']
+                            if c_id == sr_clid:
+                                srb_cl = citem['name']
+                                break
+                            else:
+                                srb_cl = "NA"
 
         #print '*'.join((sv_name,sv_state,sr_name,sr_cl,sr_sip,sr_mip,sr_udp,d_name,d_type,d_ip,d_udp,d_cl,p_name,p_ver))
         print '*'.join((sv_name,sv_id,sv_state,sr_p_name,sr_p_ver,sv_prof_id,sr_name,sr_id,sr_cl,sr_clid,sr_sip,sr_mip,sr_udp,srb_name,srb_id,srb_cl,srb_clid,srb_sip,srb_mip,srb_udp,d_name,sv_dest_id,d_type,d_pub,d_ip,d_udp,d_cl,d_eclid,d_p_name,d_p_ver,d_prof_id))
