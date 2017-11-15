@@ -25,9 +25,12 @@ def main(argv):
     parser = argparse.ArgumentParser(description='***VOS Cloud Helper***', epilog = 'Usage example:\n'+sys.argv[0]+' --cloud_url=https://hkvpurple-01.nebula.video --cloud_username=USERNAME', formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('--cloud_username', dest='cloud_username', action='store', default='', help='Cloudlink username', required=False)
     parser.add_argument('--cloud_url', dest='cloud_url', action='store', help='Cloud url', required=True)
-    parser.add_argument('--batch_file', dest='batch_file', action='store', help='Batch File with services to be processed.', required=True)
+    parser.add_argument('--batch_file', dest='batch_file', action='store', help='Batch File with services to be processed.', required=False)
     parser.add_argument('--image_id', dest='image_id', action='store', help='Slate Image ID to be set on services', required=False)
     parser.add_argument('--new-profile', dest='prof_id', action='store', help='New Profile ID', required=False)
+    parser.add_argument('--srv-fix-dst-order', dest='fix_order', action='store_true', help='Fixes the order of the destination Profiles - NG-16364', required=False)
+
+
 
 
 
@@ -48,11 +51,38 @@ def main(argv):
 
     srv_yaml = yaml.safe_load(servs.text)
 
+
+    if args.fix_order:
+        
+        for serv in srv_yaml:
+
+            dest_id = serv['destinationId']
+
+            dest_ids = serv['destinationsId']
+
+            if not dest_id == dest_ids[0]:
+                serv['destinationsId'] = [dest_ids[1],dest_ids[0]]
+
+                param = json.dumps(serv)
+
+                print "Updating service %s" %serv['name']
+                print vos.vos_mod_service(serv['id'],param,vosrt,vos_session)
+                
+                time.sleep(30)
+
+        sys.exit(2)
+
+
+    if not args.batch_file:
+        print "Please provide the --batch_file option !!!"
+        sys.exit(2)
+
     if not os.path.isfile(args.batch_file):
         print "File %s does not exist !!" %args.batch_file
         sys.exit(2)
 
     f = open(args.batch_file)
+
 
     for serv in srv_yaml:
 
@@ -74,8 +104,7 @@ def main(argv):
 
                 param = json.dumps(serv)
 
-                print "Creating service %s" %serv['name']
-                print param
+                print "Updating service %s" %serv['name']
                 print vos.vos_mod_service(serv['id'],param,vosrt,vos_session)
                 time.sleep(5)
 

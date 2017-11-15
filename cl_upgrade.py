@@ -19,13 +19,10 @@ from requests.packages.urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 
-
-#cl_session = vos.vos_get_session("vos","vossdk")
-
 vosrt = raw_input("Enter the VOS RT Url:\n")
-
 vos_session = vos.vos_get_session()
 
+cl_manual_session = vos.vos_get_session("vos","vossdk")
 
 
 args = sys.argv[1]
@@ -36,8 +33,10 @@ cl_list = vos.vos_get_cl_list(vosrt,vos_session)
 
 
 for cl in cl_list:
-    
+
     if args == "status":
+
+        cl_login = "HARMONIC"
 
         api_header = {'user-agent':'Accept: */*'}
 
@@ -48,14 +47,14 @@ for cl in cl_list:
         ret = vos_session.get(uri,headers=api_header,verify=False)
 
         if ret.status_code == 403:
-            ret = vos_session.get(uri,headers=api_header,verify=False)
+            ret = cl_manual_session.get(uri,headers=api_header,verify=False)
 
         retinfo = vos_session.get(uriinfo,headers=api_header,verify=False)
 
         if retinfo.status_code == 403:
-            retinfo = vos_session.get(uriinfo,headers=api_header,verify=False)
-
-        print "CL: %s - IP: %s Upgrade State: %s - Current Version: %s" %(cl['clname'],cl['clip'],ret.json()['upgradeState'],retinfo.json()['bundleVersion'])
+            retinfo = cl_manual_session.get(uriinfo,headers=api_header,verify=False)
+            cl_login = "MANUAL"
+        print "CL: %s - IP: %s Upgrade State: %s - Current Version: %s - Login is: %s" %(cl['clname'],cl['clip'],ret.json()['upgradeState'],retinfo.json()['bundleVersion'],cl_login)
 
     else:
 
@@ -70,4 +69,3 @@ for cl in cl_list:
         ret = vos_session.post(uri,headers=api_header,data=param,verify=False)
 
         print ret
-
