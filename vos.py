@@ -27,6 +27,7 @@ import argparse
 import uuid
 import re
 import datetime
+import urllib
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
@@ -271,6 +272,7 @@ def vos_get_source_name(srcname,vosrt,session="",proto="https"):
     if not session:
         session = vos_get_session()
 
+    srcname = urllib.quote_plus(srcname)
     api_get = "/vos-api/configure/v1/sources"+"?name="+srcname    
     
     api_header = {'user-agent':'Accept: */*'}
@@ -439,6 +441,62 @@ def vos_mod_drm_system(drmid,param,vosrt,session="",proto="https"):
     return ret
 
 
+def vos_get_user_name(usrname,vosrt,session="",proto="https"):
+
+    if not session:
+        session = vos_get_session()
+    
+    usrname = urllib.quote_plus(usrname)
+    api_get = "/vos-api/user/v1/users" + '?username=' + usrname
+    api_header = {'user-agent':'Accept: */*'}
+
+    uri = proto+'://'+vosrt+api_get
+
+    req = session.get(uri,headers=api_header,verify=False)
+    
+    return req
+
+def vos_get_user_all(vosrt,session="",proto="https"):
+
+    if not session:
+        session = vos_get_session()
+
+    api_get = "/vos-api/user/v1/users"
+    api_header = {'user-agent':'Accept: */*'}
+
+    uri = proto+'://'+vosrt+api_get
+
+    req = session.get(uri,headers=api_header,verify=False)
+    
+    #Checks if the Request was successful
+    check_request(req.status_code,uri)
+
+    return req
+
+def vos_add_user(param,vosrt,session="",proto="https"):
+    
+    if not session:
+        session = vos_get_session()
+
+    api_header = {'Content-Type':'application/json' , 'Accept':'*/*'}
+
+    uri = proto+'://'+vosrt+"/vos-api/user/v1/users"
+
+    ret = session.post(uri,headers=api_header,data=param,verify=False)
+
+    new_user = ret.json()
+
+    if ret.status_code == 200:
+
+        print "User %s with username %s created with the following Params:\n" %(new_user['name'] , new_user['username'])
+        print param
+        print "\n"
+
+    else:
+        print "Error creating User with Error: %s" %ret
+    
+    return ret
+
 def vos_get_destination_all(vosrt,session="",proto="https"):
 
     if not session:
@@ -463,6 +521,7 @@ def vos_get_destination_name(dstname,vosrt,session="",proto="https"):
     if not session:
         session = vos_get_session()
 
+    dstname = urllib.quote_plus(dstname)
     api_get = "/vos-api/configure/v1/destinations"+"?name="+dstname    
     
     api_header = {'user-agent':'Accept: */*'}
@@ -556,6 +615,7 @@ def vos_get_service_name(servname,vosrt,session="",proto="https"):
     if not session:
         session = vos_get_session()
 
+    servname = urllib.quote_plus(servname)
     api_get_serv = "/vos-api/configure/v1/services" + '?serviceName=' + servname
     api_header = {'user-agent':'Accept: */*'}
 

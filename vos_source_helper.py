@@ -33,6 +33,7 @@ def main(argv):
     parser.add_argument('--export', dest='export_src', action='store_true', help='Export Sources to a File', required=False)
     parser.add_argument('--associate_cl', dest='ass_cl', action='store_true', help='Associate CL to Source based on a File', required=False)
     parser.add_argument('--set_audio_label', dest='set_audio_label', action='store_true', help='Set the Audio Label', required=False)
+    parser.add_argument('--disable_sec_audio', dest='disable_sec_audio', action='store_true', help='Disable Secondary Audio', required=False)
     parser.add_argument('--set-options', dest='set_opt', action='store_true', help='Set Other Misc. Options', required=False)
 
 
@@ -43,7 +44,7 @@ def main(argv):
         print "Pick Either --import or --export, but not Both. :-)"
         sys.exit(2)
 
-    if not args.import_src and not args.export_src and not args.ass_cl and not args.set_opt and not args.set_audio_label:
+    if not args.import_src and not args.export_src and not args.ass_cl and not args.set_opt and not args.set_audio_label and not args.disable_sec_audio:
         print "Specify either --import or --export option or --associate_cl"
         sys.exit(2)
 
@@ -190,19 +191,20 @@ def main(argv):
             src = vos.vos_get_source_name(srcname.strip(),vosrt,vos_session)
            # print src.json()
 
-            srcy = yaml.safe_load(src.text)
-            #print srcy
-            #print"\n\n\n\n"
-
-            if srcname.strip() == srcy[0]['name']:
-                cl_list = vos.vos_get_cl_list(vosrt,vos_session)
-                for cl in cl_list:
-                    if clname.strip() == cl['clname']:
-                        srcy[0]['inputs'][0]['zixiSettings']['harmonicUplinkSetting']['uplinkGroupId'] = cl['clgroup']
-
-                param = json.dumps(srcy[0])
-
-                print vos.vos_add_source(param,vosrt,vos_session)
+            if src.text:
+                srcy = yaml.safe_load(src.text)
+                #print srcy
+                #print"\n\n\n\n"
+    
+                if srcname.strip() == srcy[0]['name']:
+                    cl_list = vos.vos_get_cl_list(vosrt,vos_session)
+                    for cl in cl_list:
+                        if clname.strip() == cl['clname']:
+                            srcy[0]['inputs'][0]['zixiSettings']['harmonicUplinkSetting']['uplinkGroupId'] = cl['clgroup']
+    
+                    param = json.dumps(srcy[0])
+    
+                    print vos.vos_add_source(param,vosrt,vos_session)
 
 
     if args.set_opt:
@@ -263,23 +265,69 @@ def main(argv):
 
             aud_label = 1
             index = 0
+            
+            #Set Audio Labels
+            if sr_opt['inputs'][0]['zixiSettings']['grooming']:
+                for audio in sr_opt['inputs'][0]['zixiSettings']['grooming']['audioGrooming']['tracks']:
+                    
+                    if not audio['labels']:
+                        sr_opt['inputs'][0]['zixiSettings']['grooming']['audioGrooming']['tracks'][index]['labels'] = ["audio_" + str(aud_label)]
+    
+                    aud_label += 1
+                    index += 1
+    
+                index = 0
+             
+                #Set SCTE 35 Label 
+                for data_groom in sr_opt['inputs'][0]['zixiSettings']['grooming']['dataGrooming']['tracks']:
+                    
+                    if data_groom['dataTrackStreamType'] == 134 and not data_groom['labels']:
+                        sr_opt['inputs'][0]['zixiSettings']['grooming']['dataGrooming']['tracks'][index]['labels'] = ["SCTE-35"]
+    
+                    index += 1         
+    
+    
+                param = json.dumps(sr_opt)
+    
+                #print param
+    
+                print vos.vos_mod_source(sr_opt['id'],param,vosrt,vos_session)
+    
+                time.sleep(10)
 
-            for audio in sr_opt['inputs'][0]['zixiSettings']['grooming']['audioGrooming']['tracks']:
-                
-                if not audio['labels']:
-                    sr_opt['inputs'][0]['zixiSettings']['grooming']['audioGrooming']['tracks'][index]['labels'] = ["audio_" + str(aud_label)]
+    #Disable Secondary Audio
+    if args.disable_sec_audio:
+        srcs = vos.vos_get_source_all(vosrt,vos_session)
 
-                aud_label += 1
-                index += 1
+        srcsy = yaml.safe_load(srcs.text)
 
+        srcount = 0
+        ret = []
+        for sr_opt in srcsy:
+            
+            if sr_opt['inputs'][0]['zixiSettings']['grooming']:
 
-            param = json.dumps(sr_opt)
+                if len(sr_opt['inputs'][0]['zixiSettings']['grooming']['audioGrooming']['tracks']) > 1:
+                    if not sr_opt['inputs'][0]['zixiSettings']['grooming']['audioGrooming']['tracks'][1]['skipProcessing']:
+                        print "\nDisabling 2nd Audio for Source %s\n" %sr_opt['name']
+                        sr_opt['inputs'][0]['zixiSettings']['grooming']['audioGrooming']['tracks'][1]['skipProcessing'] = True
+    
+                        param = json.dumps(sr_opt)
+    
+                        #print param
+                        print vos.vos_mod_source(sr_opt['id'],param,vosrt,vos_session)
+                        ret.append("Disabled 2nd Audio for Source %s" %sr_opt['name'])
+    
+                        srcount += 1
+                        time.sleep(5)
+            else:
+                print "Source %s is configured but not Groomed !!!" %sr_opt['name']
+                ret.append("Source %s is configured but not Groomed !!!" %sr_opt['name'])
 
-            print param
+        for r in ret:
+            print r
+        print "%d Sources had the 2nd Audio Disabled" %srcount
 
-            #print vos.vos_mod_source(sr_opt['id'],param,vosrt,vos_session)
-
-            time.sleep(10)
 
 
 if __name__ == "__main__":

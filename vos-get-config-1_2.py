@@ -156,7 +156,7 @@ for svitem in sv:
                         srb_udp = str(sritem['inputs'][0]['zixiSettings']['harmonicUplinkSetting']['ipPort'])
                         for citem in cl:
                             c_id = citem['id']
-                            if c_id == sr_clid:
+                            if c_id == srb_clid:
                                 srb_cl = citem['name']
                                 break
                             else:

@@ -37,7 +37,7 @@ def change_prof(vosrt,did,newprof,session):
     
     print ret
 
-    time.sleep(30) # Wait n number of seconds in between API Calls.
+    time.sleep(2) # Wait n number of seconds in between API Calls.
 
 
 
