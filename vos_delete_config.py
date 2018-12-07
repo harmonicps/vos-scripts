@@ -24,7 +24,7 @@ now = datetime.datetime.now()
 log_file = 'vos-delete-config-' + now.strftime("%Y-%m-%d-%H%M") + '.log'
 
 def continue_check(op,vosrt):
-    
+
     ret = False
 
     while True:
@@ -69,15 +69,15 @@ def main(argv):
 
 
     args = parser.parse_args()
-  
-    
+
+
     if not args.service and not args.source and not args.destination:
         print "Please enter an option for Deletion. --service or --destination or --source"
         sys.exit(2)
 
     if not args.all and not args.id:
         print "You need to specify either --all or --id option"
-        sys.exit(2)        
+        sys.exit(2)
 
     if args.all and args.id:
         print "You need to specify either --all or --id option"
@@ -104,10 +104,10 @@ def main(argv):
             servs = vos.vos_get_service_all(vosrt,vos_session)
 
             for serv in servs.json():
-                
+
 
                 vos.log_write("INFO","Deleting Service %s ID: %s" %(serv['name'],serv['id']),log_file)
-            
+
                 vos_ret = vos.vos_service_delete(serv['id'],vosrt,vos_session)
 
                 if vos_ret.status_code == 200:
@@ -117,7 +117,7 @@ def main(argv):
                 else:
                     vos.log_write("ERROR","Failed to Delete Service %s. Error: %s - %s " %(serv['name'],vos_ret,vos_ret.text),log_file)
 
-    
+
     # Delete Destinations
     if args.destination:
 
@@ -134,10 +134,10 @@ def main(argv):
             dests = vos.vos_get_destination_all(vosrt,vos_session)
 
             for dest in dests.json():
-                
+
 
                 vos.log_write("INFO","Deleting Destination %s ID: %s" %(dest['name'],dest['id']),log_file)
-            
+
                 vos_ret = vos.vos_destination_delete(dest['id'],vosrt,vos_session)
 
                 if vos_ret.status_code == 200:
@@ -163,10 +163,10 @@ def main(argv):
             srcs = vos.vos_get_source_all(vosrt,vos_session)
 
             for src in srcs.json():
-                
+
 
                 vos.log_write("INFO","Deleting Source %s ID: %s" %(src['name'],src['id']),log_file)
-            
+
                 vos_ret = vos.vos_source_delete(src['id'],vosrt,vos_session)
 
                 if vos_ret.status_code == 200:
