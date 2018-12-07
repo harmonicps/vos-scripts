@@ -97,7 +97,7 @@ def main(argv):
                     serv['addons']['drmAddon']['enable'] = False
                 
                 # Enables DRM on all services listed in the Batch File
-                if args.drm_off:
+                if args.drm_on:
                     serv['addons']['drmAddon']['enable'] = True
 
                 if args.image_id:
