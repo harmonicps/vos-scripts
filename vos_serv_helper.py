@@ -30,7 +30,7 @@ def main(argv):
     parser.add_argument('--new-profile', dest='prof_id', action='store', help='New Profile ID', required=False)
     parser.add_argument('--srv-fix-dst-order', dest='fix_order', action='store_true', help='Fixes the order of the destination Profiles - NG-16364', required=False)
     parser.add_argument('--drm-off', dest='drm_off', action='store_true', help='Disables DRM', required=False)
-    parser.add_argument('--drm-on', dest='drm_on', action='store_true', help='Disables DRM', required=False)
+    parser.add_argument('--drm-on', dest='drm_on', action='store_true', help='Enables DRM', required=False)
 
 
 
